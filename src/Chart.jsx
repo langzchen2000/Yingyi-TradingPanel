@@ -198,7 +198,7 @@ function Chart({ height, width }) {
             fabricCanvas.add(vertLineRef.current);
             lastLineRef.current = horiLineRef.current;
             lastVertLineRef.current = vertLineRef.current;
-            fabricCanvas.renderAll();
+            //fabricCanvas.renderAll();
         }
     }
 

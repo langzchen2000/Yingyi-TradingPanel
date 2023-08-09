@@ -1,4 +1,52 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+}
+
+.main {
+    display: flex;
+    flex-direction: row;
+}
+
+.header-wrapper {
+    background-color: #333;
+    /* 背景颜色 */
+    color: white;
+    /* 文本颜色 */
+    padding: 20px;
+    /* 内边距 */
+    margin: 0;
+    top: 0;
+    height: 60px;
+}
+
+.sidebar {
+    width: 50px;
+    /* 你可以根据需要调整宽度 */
+    background-color: #333;
+    /* 背景颜色 */
+    padding: 0px;
+    color: white;
+    /* 文本颜色 */
+    position: sticky;
+    /* 固定位置 */
+    top: 0;
+    /* 从顶部开始 */
+    left: 0;
+    /* 从左边开始 */
+    height: calc(100vh - 60px);
+    /* 使其占满整个视口的高度 */
+    overflow-y: auto;
+    /* 如果内容超出侧边栏高度，允许滚动 */
+}
+
 .centered-chart {
+    flex: 1;
     display: flex;
     justify-content: center;
+    padding: 20px;
+    margin-left: 100px;
 }
