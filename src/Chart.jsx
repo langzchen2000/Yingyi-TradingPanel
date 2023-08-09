@@ -9,6 +9,9 @@ function Chart({ height, width }) {
     const [chartData, setChartData] = useState([]);
     const horiLineRef = useRef(null);
     const lastLineRef = useRef(null);
+    const vertLineRef = useRef(null);
+    const lastVertLineRef = useRef(null);
+    const lastRequestRef = useRef(null);
     const MIN_MAX_MARGIN = 20;
     const PRICE_HORI_MARGIN = 47;
     const STROKE_WIDTH = 3;
@@ -25,15 +28,18 @@ function Chart({ height, width }) {
 
     //响应时间刻度的变化
     useEffect(() => {
+        lastRequestRef.current = timeScale;
         const intervalId = setInterval(async () => {
             try {
                 const response = await fetch(`${baseURL}/api/v5/market/candles?instId=BTC-USDT&bar=${timeScale}`);
                 const data = await response.json();
-                setChartData(data.data);
+                if (lastRequestRef.current == timeScale) {
+                    setChartData(data.data);
+                }
             } catch (error) {
                 console.log(error);
             }
-        }, 150);
+        }, 300);
         return () => {
             clearInterval(intervalId);
         }
@@ -50,10 +56,8 @@ function Chart({ height, width }) {
             drawBackground();
             drawChartData();
             const intervalId = setInterval(() => {
-                // drawBackground();
-                // drawChartData();
                 drawLine();
-            }, 50);
+            }, 10);
             fabricCanvas.on('mouse:move', function (event) {
                 const pointer = fabricCanvas.getPointer(event.e);
                 const posY = pointer.y;
@@ -71,8 +75,8 @@ function Chart({ height, width }) {
             });
 
             fabricCanvas.on('mouse:out', function (event) {
-                if (horiLine) {
-                    setHoriLine(null);
+                if (horiLineRef.current) {
+                    horiLineRef.current = null;
                 }
             });
             return () => {
@@ -90,6 +94,7 @@ function Chart({ height, width }) {
             fabricCanvas.setWidth(Math.max(width, 300));
             drawBackground();
             drawChartData();
+            drawLine();
         }
     }, [height, width])
 
@@ -186,6 +191,7 @@ function Chart({ height, width }) {
     useEffect(() => {
         drawBackground();
         drawChartData();
+        drawLine();
     }, [chartData]);
 
     return (
