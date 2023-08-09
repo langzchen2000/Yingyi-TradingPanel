@@ -1,13 +1,14 @@
 import React, { useEffect, useRef, useState, useLayoutEffect } from 'react';
 import { fabric } from 'fabric';
 
-function Chart({height, width}) {
+function Chart({ height, width }) {
     const baseURL = 'https://www.okx.com'
     const canvasRef = useRef(null);
     const [fabricCanvas, setFabricCanvas] = useState(null);
     const [timeScale, setTimeScale] = useState('15m');
     const [chartData, setChartData] = useState([]);
-    const [lastHoriLine, setlastHoriLine] = useState(null);
+    const horiLineRef = useRef(null);
+    const lastLineRef = useRef(null);
     const MIN_MAX_MARGIN = 20;
     const PRICE_HORI_MARGIN = 47;
     const STROKE_WIDTH = 3;
@@ -16,14 +17,11 @@ function Chart({height, width}) {
         const canvas = new fabric.Canvas(canvasRef.current);
         console.log(`canvas initialized ${canvas}`);
         setFabricCanvas(canvas);
-        
         return () => {
+
             canvas.dispose();
         };
     }, []);
-    const handleMouseMove = () => {
-        console.log('mouse move');
-    }
 
     //响应时间刻度的变化
     useEffect(() => {
@@ -41,7 +39,7 @@ function Chart({height, width}) {
         }
     }, [timeScale])
 
-    //响应画布初始化，画布大小的变化
+    //响应画布初始化
     useLayoutEffect(() => {
         if (fabricCanvas) {
             console.log(height);
@@ -51,34 +49,38 @@ function Chart({height, width}) {
             fabricCanvas.setWidth(Math.max(width, 300));
             drawBackground();
             drawChartData();
-            fabricCanvas.on('mouse:over', function(event) {
-                // 获取鼠标相对于 canvas 的坐标
+            const intervalId = setInterval(() => {
+                // drawBackground();
+                // drawChartData();
+                drawLine();
+            }, 50);
+            fabricCanvas.on('mouse:move', function (event) {
                 const pointer = fabricCanvas.getPointer(event.e);
-                const posX = pointer.x;
                 const posY = pointer.y;
-                const horiLine = new fabric.Line(
-                    [
-                        STROKE_WIDTH,
-                        posY,
-                        fabricCanvas.width - STROKE_WIDTH - PRICE_HORI_MARGIN,
-                        posY
-                    ],
+                const posX = pointer.x;
+                const newHoriLine = new fabric.Line(
+                    [STROKE_WIDTH, posY, fabricCanvas.width - STROKE_WIDTH - PRICE_HORI_MARGIN, posY],
                     {
                         stroke: 'black',
                         strokeWidth: 1,
                         strokeDashArray: [5, 5],
                         selectable: false,
                     }
-                )
-                if (lastHoriLine != null) fabricCanvas.remove(lastHoriLine);
-                fabricCanvas.add(horiLine);
-                setlastHoriLine(horiLine);
+                );
+                horiLineRef.current = newHoriLine;
             });
 
+            fabricCanvas.on('mouse:out', function (event) {
+                if (horiLine) {
+                    setHoriLine(null);
+                }
+            });
             return () => {
                 fabricCanvas.dispose();
+                clearInterval(intervalId);
             };
         }
+
     }, [fabricCanvas])
 
     //响应长宽的变化
@@ -172,6 +174,14 @@ function Chart({height, width}) {
         }
     };
 
+    const drawLine = () => {
+        if (fabricCanvas && horiLineRef.current) {
+            if (lastLineRef.current) fabricCanvas.remove(lastLineRef.current);
+            fabricCanvas.add(horiLineRef.current);
+            lastLineRef.current = horiLineRef.current;
+            fabricCanvas.renderAll();
+        }
+    }
 
     useEffect(() => {
         drawBackground();
@@ -180,8 +190,8 @@ function Chart({height, width}) {
 
     return (
         <div className="chart">
-            
-            <canvas ref={canvasRef} onMouseMove={handleMouseMove}/>
+
+            <canvas ref={canvasRef} />
             <label >时间刻度</label>
             <select onChange={(e) => setTimeScale(e.target.value)}>
                 <option value='15m'>15m</option>
