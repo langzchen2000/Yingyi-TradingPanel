@@ -61,7 +61,8 @@ function Chart({ height, width }) {
             fabricCanvas.on('mouse:move', function (event) {
                 const pointer = fabricCanvas.getPointer(event.e);
                 const posY = pointer.y;
-                const posX = pointer.x;
+                const posX = Math.min(pointer.x, fabricCanvas.width - PRICE_HORI_MARGIN);
+
                 const newHoriLine = new fabric.Line(
                     [STROKE_WIDTH, posY, fabricCanvas.width - STROKE_WIDTH - PRICE_HORI_MARGIN, posY],
                     {
@@ -71,7 +72,17 @@ function Chart({ height, width }) {
                         selectable: false,
                     }
                 );
+                const newVertiLine = new fabric.Line(
+                    [posX, STROKE_WIDTH, posX, fabricCanvas.height - STROKE_WIDTH],
+                    {
+                        stroke: 'black',
+                        strokeWidth: 1,
+                        strokeDashArray: [5, 5],
+                        selectable: false,
+                    }
+                )
                 horiLineRef.current = newHoriLine;
+                vertLineRef.current = newVertiLine;
             });
 
             fabricCanvas.on('mouse:out', function (event) {
@@ -182,8 +193,11 @@ function Chart({ height, width }) {
     const drawLine = () => {
         if (fabricCanvas && horiLineRef.current) {
             if (lastLineRef.current) fabricCanvas.remove(lastLineRef.current);
+            if (lastVertLineRef.current) fabricCanvas.remove(lastVertLineRef.current);
             fabricCanvas.add(horiLineRef.current);
+            fabricCanvas.add(vertLineRef.current);
             lastLineRef.current = horiLineRef.current;
+            lastVertLineRef.current = vertLineRef.current;
             fabricCanvas.renderAll();
         }
     }
