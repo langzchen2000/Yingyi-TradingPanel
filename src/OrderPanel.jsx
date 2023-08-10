@@ -5,6 +5,7 @@ function OrderPanel() {
     const sellRef = useRef(null);
     const limitRef = useRef(null);
     const marketRef = useRef(null);
+    const batchRef = useRef(null);
     const [buyOrSell, setBuyOrSell] = useState('buy');
     const [orderType, setOrderType] = useState('limit');
     useEffect(() => {
@@ -36,12 +37,20 @@ function OrderPanel() {
             limitRef.current.addEventListener('click', () => {
                 limitRef.current.style.borderBottom = 'solid black 2px'
                 marketRef.current.style.borderBottom = 'solid rgb(183, 183, 183) 2px'
+                batchRef.current.style.borderBottom = 'solid rgb(183, 183, 183) 2px'
                 setOrderType('Limit')
             });
             marketRef.current.addEventListener('click', () => {
                 limitRef.current.style.borderBottom = 'solid rgb(183, 183, 183) 2px'
                 marketRef.current.style.borderBottom = 'solid black 2px'
+                batchRef.current.style.borderBottom = 'solid rgb(183, 183, 183) 2px'
                 setOrderType('Market')
+            });
+            batchRef.current.addEventListener('click', () => {
+                limitRef.current.style.borderBottom = 'solid rgb(183, 183, 183) 2px'
+                marketRef.current.style.borderBottom = 'solid rgb(183, 183, 183) 2px'
+                batchRef.current.style.borderBottom = 'solid black 2px'
+                setOrderType('Batch')
             });
         }
         return () => {
@@ -57,6 +66,7 @@ function OrderPanel() {
             <div className='order-type-wrapper'>
                 <div className='order-type-button' ref={limitRef}>限价</div>
                 <div className='order-type-button' ref={marketRef}>市价</div>
+                <div className='order-type-button' ref={batchRef}>批量下单</div>
             </div>
             <div className='form-wrapper' >
                 <Form buyOrSell={buyOrSell} orderType={orderType} />
@@ -74,6 +84,10 @@ function Form({ buyOrSell, orderType }) {
     } else if (orderType === 'Market') {
         return (
             <MarketForm buyOrSell={buyOrSell} />
+        )
+    } else if (orderType === 'Batch') {
+        return (
+            <BatchForm buyOrSell={buyOrSell} />
         )
     } else {
         return (
@@ -138,12 +152,19 @@ function LimitForm({buyOrSell}) {
 
     return (
         <form>
-            <label htmlFor="price">价格</label>
-            <input type="number" id="price" name="price" value={price} onChange={handleInputChange}/>
+            <div className="price-input-wrapper">
+                <label htmlFor="price">价格</label>
+                <input type="number" id="price" name="price" value={price} onChange={handleInputChange}/>
+            </div>
+            <div className="price-input-wrapper">
             <label htmlFor="amount">数量</label>
             <input type="number" id="amount" name="amount" value={amount} onChange={handleInputChange}/>
-            <label htmlFor="total">金额</label>
-            <input type="number" id="total" name="total" value={total} onChange={handleInputChange}/>
+            </div>
+            <div className="price-input-wrapper">
+                <label htmlFor="total">金额</label>
+                <input type="number" id="total" name="total" value={total} onChange={handleInputChange}/>
+            </div>
+            {buyOrSell === 'buy' ? <div className="order-panel-button buy-button">买入</div> : <div className="order-panel-button sell-button">卖出</div>}
         </form>
     )
 }
@@ -153,6 +174,18 @@ function MarketForm({buyOrSell}) {
         <form>
             <label htmlFor="amount">数量</label>
             <input type="number" id="amount" name="amount" />
+            {buyOrSell === 'buy' ? <div className="order-panel-button buy-button">买入</div> : <div className="order-panel-button sell-button">卖出</div>}
+        </form>
+
+    )
+}
+
+function BatchForm({buyOrSell}) {
+    return (
+        <form>
+            <label htmlFor="amount">数量</label>
+            <input type="number" id="amount" name="amount" />
+            {buyOrSell === 'buy' ? <div className="order-panel-button buy-button">买入</div> : <div className="order-panel-button sell-button">卖出</div>}
         </form>
 
     )

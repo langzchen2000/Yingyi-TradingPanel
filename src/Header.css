@@ -1,0 +1,13 @@
+.header-wrapper {
+    background-color: #333;
+    /* 背景颜色 */
+    color: white;
+    /* 文本颜色 */
+    padding: 20px;
+    /* 内边距 */
+    margin: 0;
+    top: 0;
+    
+    width: 100%;
+    display: flex;
+}
