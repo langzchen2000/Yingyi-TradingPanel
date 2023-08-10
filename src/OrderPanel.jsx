@@ -83,7 +83,79 @@ function Form({ buyOrSell, orderType }) {
 }
 
 function LimitForm({buyOrSell}) {
-    
+    const [price, setPrice] = useState('');
+    const [amount, setAmount] = useState('');
+    const [total, setTotal] = useState('');
+
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+
+        switch (name) {
+            case 'price':
+                setPrice(value);
+                if (total && amount && value) {
+                    setTotal(value * amount);
+                    break;
+                }
+                if (!value) {
+                    setTotal('');
+                    break;
+                }
+                if (amount) setTotal(value * amount);
+                else if (total) setAmount(total / value);
+                break;
+            case 'amount':
+                setAmount(value);
+                if (total && price && value) {
+                    setTotal(value * price);
+                    break;
+                }
+                if (!value) {
+                    setTotal('');
+                    break;
+                }
+                if (price) setTotal(value * price);
+                else if (total) setPrice(total / value);
+                break;
+            case 'total':
+                setTotal(value);
+                console.log(typeof value);
+                if (value && amount && price) {
+                    setAmount(value / price);
+                    break;
+                }
+                if (!value) {
+                    setAmount('');
+                    break;
+                }
+                if (price) setAmount(value / price);
+                else if (amount) setPrice(value / amount);
+                break;
+            default:
+                break;
+        }
+    };
+
+    return (
+        <form>
+            <label htmlFor="price">价格</label>
+            <input type="number" id="price" name="price" value={price} onChange={handleInputChange}/>
+            <label htmlFor="amount">数量</label>
+            <input type="number" id="amount" name="amount" value={amount} onChange={handleInputChange}/>
+            <label htmlFor="total">金额</label>
+            <input type="number" id="total" name="total" value={total} onChange={handleInputChange}/>
+        </form>
+    )
+}
+
+function MarketForm({buyOrSell}) {
+    return (
+        <form>
+            <label htmlFor="amount">数量</label>
+            <input type="number" id="amount" name="amount" />
+        </form>
+
+    )
 }
 
 export default OrderPanel;
