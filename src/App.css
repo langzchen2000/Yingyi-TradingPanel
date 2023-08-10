@@ -76,11 +76,7 @@ body {
     width: 400px;
 }
 
-.order-panel {
-    width: 100%;
-    background-color: blue;
-    height: 400px;
-}
+
 .panel {
     flex: 1 1 auto;
     display: flex;
