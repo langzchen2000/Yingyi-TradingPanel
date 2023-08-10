@@ -1,19 +1,20 @@
 import React, { useEffect, useRef, useState, useLayoutEffect } from 'react';
 import { fabric } from 'fabric';
 
-function Chart({ height, width }) {
+function Chart({ height, width}) {
     const baseURL = 'https://www.okx.com'
     const canvasRef = useRef(null);
     const [fabricCanvas, setFabricCanvas] = useState(null);
     const [timeScale, setTimeScale] = useState('15m');
     const [chartData, setChartData] = useState([]);
+    const chartDivRef = useRef(null);
     const horiLineRef = useRef(null);
     const lastLineRef = useRef(null);
     const vertLineRef = useRef(null);
     const lastVertLineRef = useRef(null);
     const lastRequestRef = useRef(null);
     const MIN_MAX_MARGIN = 20;
-    const PRICE_HORI_MARGIN = 47;
+    const PRICE_HORI_MARGIN = 53;
     const STROKE_WIDTH = 3;
 
     useEffect(() => {
@@ -103,6 +104,7 @@ function Chart({ height, width }) {
         if (fabricCanvas) {
             fabricCanvas.setHeight(height);
             fabricCanvas.setWidth(Math.max(width, 300));
+            //fabricCanvas.renderAll();
             drawBackground();
             drawChartData();
             drawLine();
@@ -116,8 +118,8 @@ function Chart({ height, width }) {
                 left: 0,
                 top: 0,
                 fill: 'transparent',  // 填充颜色，transparent为透明
-                width: fabricCanvas.width - 50,
-                height: fabricCanvas.height - 3,
+                width: fabricCanvas.width - PRICE_HORI_MARGIN,
+                height: fabricCanvas.height - STROKE_WIDTH,
                 stroke: 'red',
                 strokeWidth: STROKE_WIDTH,
                 selectable: false,
@@ -172,16 +174,16 @@ function Chart({ height, width }) {
                 fabricCanvas.add(wick);
             }
             const mintxt = new fabric.Text(min.toString(), {
-                left: fabricCanvas.width - PRICE_HORI_MARGIN,
+                left: fabricCanvas.width - PRICE_HORI_MARGIN + STROKE_WIDTH,
                 top: fabricCanvas.height - MIN_MAX_MARGIN,
-                fontSize: 10,
+                fontSize: 15,
                 selectable: false,
                 hoverCursor: 'default',
             })
             const maxtxt = new fabric.Text(max.toString(), {
-                left: fabricCanvas.width - PRICE_HORI_MARGIN,
+                left: fabricCanvas.width - PRICE_HORI_MARGIN + STROKE_WIDTH,
                 top: MIN_MAX_MARGIN,
-                fontSize: 10,
+                fontSize: 15,
                 selectable: false,
                 hoverCursor: 'default',
             })
@@ -209,9 +211,9 @@ function Chart({ height, width }) {
     }, [chartData]);
 
     return (
-        <div className="chart">
+        <div className="chart" ref={chartDivRef}>
 
-            <canvas ref={canvasRef} />
+            <canvas ref={canvasRef} className="inner-canvas"/>
             <label >时间刻度</label>
             <select onChange={(e) => setTimeScale(e.target.value)}>
                 <option value='15m'>15m</option>

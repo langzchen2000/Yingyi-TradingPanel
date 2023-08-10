@@ -1,7 +1,9 @@
 * {
     box-sizing: border-box;
 }
-
+:root {
+    --sidebar-width: 50px;
+}
 body {
     margin: 0;
 }
@@ -21,32 +23,67 @@ body {
     margin: 0;
     top: 0;
     height: 60px;
+    width: 100%;
 }
 
 .sidebar {
-    width: 50px;
-    /* 你可以根据需要调整宽度 */
+    display: flex;
+    flex-direction: column;
+    width: var(--sidebar-width);
     background-color: #333;
-    /* 背景颜色 */
     padding: 0px;
     color: white;
-    /* 文本颜色 */
     position: sticky;
     /* 固定位置 */
     top: 0;
     /* 从顶部开始 */
     left: 0;
     /* 从左边开始 */
-    height: calc(100vh - 60px);
+    height: 100vh;
     /* 使其占满整个视口的高度 */
     overflow-y: auto;
     /* 如果内容超出侧边栏高度，允许滚动 */
 }
 
-.centered-chart {
+.sidebar button {
+    width: var(--sidebar-width);
+    height: var(--sidebar-width);
+    background-color: #333;
+}
+
+#setting-icon {
+    position: fixed;
+    bottom: 0; /* 使其始终在视口的底部 */
+    left: 0; /* 使其与 .sidebar 对齐 */
+    width: var(--sidebar-width);
+    height: var(--sidebar-width);
+    background-color: #333;
+}
+
+.left-panel-wrapper {
+    width: 400px;
+}
+.middle-panel-wrapper {
     flex: 1;
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    align-items: center;
+}
+.inner-canvas {
+    max-width: 100%;
+}
+.right-panel-wrapper {
+    width: 400px;
+}
+
+.order-panel {
+    width: 100%;
+    background-color: blue;
+    height: 400px;
+}
+.panel {
+    flex: 1 1 auto;
+    display: flex;
+    justify-content: flex-start;
     padding: 20px;
-    margin-left: 100px;
 }
