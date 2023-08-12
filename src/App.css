@@ -34,9 +34,19 @@ body {
 }
 
 .sidebar button {
-    width: var(--sidebar-width);
+    padding: 0;
+    border-width: 0;
+}
+
+.sidebar span{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
     height: var(--sidebar-width);
     background-color: #333;
+    color: white;
+    font-size: 30px;
 }
 
 #setting-icon {

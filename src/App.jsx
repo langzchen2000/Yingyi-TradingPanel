@@ -8,6 +8,7 @@ import OrderPanel from './OrderPanel'
 const APIKey = '1298d094-92cb-4844-9e97-a0d842da8cc8'
 const secretKey = '688857AE3D2441F20755F39DACA15DF9'
 const baseURL = 'https://www.okx.com'
+
 function App() {
   const [chartWidth, setChartWidth] = useState(0)
   const panelRef = useRef(null)

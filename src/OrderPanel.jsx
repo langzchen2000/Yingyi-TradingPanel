@@ -10,7 +10,7 @@ function OrderPanel() {
     const [orderType, setOrderType] = useState('limit');
     useEffect(() => {
         if (buyRef.current) {
-            buyRef.current.style.backgroundColor = 'green'
+            buyRef.current.style.backgroundColor = 'rgb(3, 179, 3)'
             setBuyOrSell('buy')
         }
         if (limitRef.current) {
@@ -19,7 +19,7 @@ function OrderPanel() {
         }
         if (buyRef.current && sellRef.current) {
             buyRef.current.addEventListener('click', () => {
-                buyRef.current.style.backgroundColor = 'green'
+                buyRef.current.style.backgroundColor = 'rgb(3, 179, 3)'
                 buyRef.current.style.color = 'black'
                 sellRef.current.style.backgroundColor = 'rgb(183, 183, 183)'
                 sellRef.current.style.color = 'grey'
