@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useLayoutEffect, useContext } from 'react';
 import { fabric } from 'fabric';
 import { instContext } from './appContext';
+import './Chart.css';
 
 function Chart({ height, width}) {
     const baseURL = 'https://www.okx.com'
@@ -8,16 +9,21 @@ function Chart({ height, width}) {
     const [fabricCanvas, setFabricCanvas] = useState(null);
     const [timeScale, setTimeScale] = useState('15m');
     const [chartData, setChartData] = useState([]);
-    const chartDivRef = useRef(null);
     const horiLineRef = useRef(null);
     const lastLineRef = useRef(null);
     const vertLineRef = useRef(null);
     const lastVertLineRef = useRef(null);
-    const lastRequestRef = useRef(null);
+
     const MIN_MAX_MARGIN = 20;
     const PRICE_HORI_MARGIN = 53;
-    const STROKE_WIDTH = 3;
+    const STROKE_WIDTH = 1;
     const instId = useContext(instContext);
+    const timeScaleSelect = ['1m', '5m', '15m', '30m', '1H', '2H', '4H', '12H', '1D']
+    const styleConfig = {
+        backgroundStrockColor: 'rgb(183, 183, 183)',
+        redColor: 'red',
+        greenColor: 'rgb(3, 179, 3)',
+    }
 
     useEffect(() => {
         const canvas = new fabric.Canvas(canvasRef.current);
@@ -55,7 +61,7 @@ function Chart({ height, width}) {
             console.log(fabricCanvas)
             fabricCanvas.setHeight(height);
             fabricCanvas.selection = false;
-            fabricCanvas.setWidth(Math.max(width, 300));
+            fabricCanvas.setWidth(Math.max(width, 100));
             drawBackground();
             drawChartData();
             const intervalId = setInterval(() => {
@@ -122,7 +128,7 @@ function Chart({ height, width}) {
                 fill: 'transparent',  // 填充颜色，transparent为透明
                 width: fabricCanvas.width - PRICE_HORI_MARGIN,
                 height: fabricCanvas.height - STROKE_WIDTH,
-                stroke: 'red',
+                stroke: styleConfig.backgroundStrockColor,
                 strokeWidth: STROKE_WIDTH,
                 selectable: false,
                 hoverCursor: 'default',
@@ -154,7 +160,7 @@ function Chart({ height, width}) {
                 const rect = new fabric.Rect({
                     left: leftStart,
                     top: fabricCanvas.height - (MIN_MAX_MARGIN + (item[1] - min) / (max - min) * (fabricCanvas.height - 2 * MIN_MAX_MARGIN)),
-                    fill: item[1] > item[4] ? 'red' : 'green',  // 填充颜色, 红跌绿涨
+                    fill: item[1] > item[4] ? styleConfig.redColor : styleConfig.greenColor,  // 填充颜色, 红跌绿涨
                     width: x,
                     height: y,
                 })
@@ -166,8 +172,8 @@ function Chart({ height, width}) {
                         fabricCanvas.height - (MIN_MAX_MARGIN + (item[3] - min) / (max - min) * (fabricCanvas.height - 2 * MIN_MAX_MARGIN)),
                     ],
                     {
-                        fill: item[1] > item[4] ? 'red' : 'green',
-                        stroke: item[1] > item[4] ? 'red' : 'green',
+                        fill: item[1] > item[4] ? styleConfig.redColor : styleConfig.greenColor,
+                        stroke: item[1] > item[4] ? styleConfig.redColor : styleConfig.greenColor,
                         strokeWidth: 2,
                         selectable: false,
                     }
@@ -211,18 +217,21 @@ function Chart({ height, width}) {
         drawChartData();
         drawLine();
     }, [chartData]);
+    
+    const timeScaleButtons = timeScaleSelect.map((item) => {
+        return (
+            <button key={item} onClick={() => {if(item !== timeScale) setTimeScale(item)}} className={item === timeScale ? 'selected' : ''}>
+                {item}
+            </button>
+        )
+    })
 
     return (
-        <div className="chart" ref={chartDivRef}>
-
+        <div className="chart">
             <canvas ref={canvasRef} className="inner-canvas"/>
-            <label >时间刻度</label>
-            <select onChange={(e) => setTimeScale(e.target.value)}>
-                <option value='15m'>15m</option>
-                <option value='30m'>30m</option>
-                <option value='1H'>1h</option>
-                <option value='4H'>4h</option>
-            </select>
+            <div className="time-scale-wrapper">
+                {timeScaleButtons}
+            </div>
         </div>
     );
 }

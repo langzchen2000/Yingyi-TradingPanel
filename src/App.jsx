@@ -12,13 +12,13 @@ if (localStorage.getItem('instId')) {
 }
 
 function App() {
-  const [chartWidth, setChartWidth] = useState(0)
-  const [inst, setInst] = useState(instId);
+  const [chartWidth, setChartWidth] = useState(window.innerWidth * 0.5)
+  const chartHeight = 400;
 
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth) {
-        setChartWidth(window.innerWidth - 1000);
+        setChartWidth(window.innerWidth * 0.5);
       }
     }
     handleResize();
@@ -41,7 +41,7 @@ function App() {
               
             </div>
             <div className='middle-panel-wrapper'>
-              <Chart height={700} width={chartWidth} />
+              <Chart height={chartHeight} width={chartWidth} />
             </div>
             <div className='right-panel-wrapper'>
               <OrderPanel />

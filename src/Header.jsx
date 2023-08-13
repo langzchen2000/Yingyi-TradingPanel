@@ -8,8 +8,8 @@ function Header() {
         <div className='header-wrapper'>
             <div className='logo'>
                 <div>盈益终端 V0</div>
-                <div>{instId}</div>
             </div> 
+            
         </div>
     )
 }
