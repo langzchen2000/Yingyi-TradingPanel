@@ -1,5 +1,6 @@
-import React, { useEffect, useRef, useState, useLayoutEffect } from 'react';
+import React, { useEffect, useRef, useState, useLayoutEffect, useContext } from 'react';
 import { fabric } from 'fabric';
+import { instContext } from './appContext';
 
 function Chart({ height, width}) {
     const baseURL = 'https://www.okx.com'
@@ -16,25 +17,25 @@ function Chart({ height, width}) {
     const MIN_MAX_MARGIN = 20;
     const PRICE_HORI_MARGIN = 53;
     const STROKE_WIDTH = 3;
+    const instId = useContext(instContext);
 
     useEffect(() => {
         const canvas = new fabric.Canvas(canvasRef.current);
         console.log(`canvas initialized ${canvas}`);
         setFabricCanvas(canvas);
         return () => {
-
             canvas.dispose();
         };
     }, []);
 
     //响应时间刻度的变化
     useEffect(() => {
-        lastRequestRef.current = timeScale;
+        let ignore = false;
         const intervalId = setInterval(async () => {
             try {
-                const response = await fetch(`${baseURL}/api/v5/market/candles?instId=BTC-USDT&bar=${timeScale}`);
+                const response = await fetch(`${baseURL}/api/v5/market/candles?instId=${instId}&bar=${timeScale}`);
                 const data = await response.json();
-                if (lastRequestRef.current == timeScale) {
+                if (!ignore) {
                     setChartData(data.data);
                 }
             } catch (error) {
@@ -43,6 +44,7 @@ function Chart({ height, width}) {
         }, 300);
         return () => {
             clearInterval(intervalId);
+            ignore = true;
         }
     }, [timeScale])
 
