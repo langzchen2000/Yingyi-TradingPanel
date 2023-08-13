@@ -40,7 +40,7 @@ function App() {
         <div className='main'>
           <showLeftPanelContext.Provider value={showLeftPanel}>
             <div className='sidebar-wrapper'>
-              <Sidebar setShowLeftPanel={setShowLeftPanel} />
+              <Sidebar setShowLeftPanel={setShowLeftPanel} setChartWidth={setChartWidth}/>
             </div>
           </showLeftPanelContext.Provider>
           <div className='panel'>

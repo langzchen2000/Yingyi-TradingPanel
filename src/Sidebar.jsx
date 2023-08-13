@@ -2,13 +2,15 @@ import React, { useEffect, useRef, useState, useLayoutEffect, useContext} from '
 import 'material-icons/iconfont/material-icons.css';
 import {showLeftPanelContext} from './appContext';
 
-function Sidebar({setShowLeftPanel}) {
+function Sidebar({setShowLeftPanel, setChartWidth}) {
     const showLeftPanel = useContext(showLeftPanelContext);
     const handleClick = (leftPanelContent) => {
         if (showLeftPanel !== leftPanelContent) {
             setShowLeftPanel(leftPanelContent);
+            setChartWidth(window.innerWidth * 0.5)
         } else {
             setShowLeftPanel(false);
+            setChartWidth(window.innerWidth * 0.7)
         }
     }
     return (
