@@ -6,13 +6,14 @@ import Sidebar from './Sidebar'
 import Header from './Header'
 import OrderPanel from './OrderPanel'
 
-let instId = 'BTC-USDT';
+let instIdTemp = 'BTC-USDT';
 if (localStorage.getItem('instId')) {
-  instId = localStorage.getItem('instId');
+  instIdTemp = localStorage.getItem('instId');
 }
 
 function App() {
   const [chartWidth, setChartWidth] = useState(window.innerWidth * 0.5)
+  const [instId, setInstId] = useState(instIdTemp);
   const chartHeight = 400;
 
   useEffect(() => {
@@ -31,7 +32,7 @@ function App() {
   return (
     <div>
       <instContext.Provider value={instId}>
-        <Header />
+        <Header setInstId={setInstId}/>
         <div className='main'>
           <div className='sidebar-wrapper'>
             <Sidebar />

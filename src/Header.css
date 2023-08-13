@@ -8,7 +8,17 @@
     /* 内边距 */
     margin: 0;
     top: 0;
-    
     width: 100%;
-    
+}
+
+.header-wrapper .instId-selection {
+    margin-left: 20px;
+
+}
+
+.header-wrapper .instId-selection select {
+    color: white;
+    background-color: #333;
+    border-radius: 5px;
+    font-size: 1em;
 }

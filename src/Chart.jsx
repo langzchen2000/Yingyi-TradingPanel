@@ -52,7 +52,7 @@ function Chart({ height, width}) {
             clearInterval(intervalId);
             ignore = true;
         }
-    }, [timeScale])
+    }, [timeScale, instId])
 
     //响应画布初始化
     useLayoutEffect(() => {
