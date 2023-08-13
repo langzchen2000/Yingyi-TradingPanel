@@ -1,6 +1,6 @@
 import { useEffect, useState, useContext } from 'react'
 import './App.css'
-import { instContext } from './appContext'
+import { instContext, showLeftPanelContext } from './appContext'
 import Chart from './Chart'
 import Sidebar from './Sidebar'
 import Header from './Header'
@@ -10,16 +10,20 @@ let instIdTemp = 'BTC-USDT';
 if (localStorage.getItem('instId')) {
   instIdTemp = localStorage.getItem('instId');
 }
+let account = {
+
+}
 
 function App() {
-  const [chartWidth, setChartWidth] = useState(window.innerWidth * 0.5)
+  const [chartWidth, setChartWidth] = useState(window.innerWidth * 0.7)
   const [instId, setInstId] = useState(instIdTemp);
-  const chartHeight = 400;
+  const [showLeftPanel, setShowLeftPanel] = useState(false);
+  const chartHeight = 500;
 
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth) {
-        setChartWidth(window.innerWidth * 0.5);
+        setChartWidth(showLeftPanel ? window.innerWidth * 0.5 : window.innerWidth * 0.7);
       }
     }
     handleResize();
@@ -27,20 +31,22 @@ function App() {
     return () => {
       window.removeEventListener('resize', handleResize);
     }
-  }, [])
+  }, [showLeftPanel])
 
   return (
     <div>
       <instContext.Provider value={instId}>
-        <Header setInstId={setInstId}/>
+        <Header setInstId={setInstId} />
         <div className='main'>
-          <div className='sidebar-wrapper'>
-            <Sidebar />
-          </div>
-          <div className='panel'>
-            <div className='left-panel-wrapper'>
-              
+          <showLeftPanelContext.Provider value={showLeftPanel}>
+            <div className='sidebar-wrapper'>
+              <Sidebar setShowLeftPanel={setShowLeftPanel} />
             </div>
+          </showLeftPanelContext.Provider>
+          <div className='panel'>
+            {showLeftPanel ? (<div className='left-panel-wrapper'>
+
+            </div>) : null}
             <div className='middle-panel-wrapper'>
               <Chart height={chartHeight} width={chartWidth} />
             </div>
