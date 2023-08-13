@@ -12,9 +12,9 @@ if (localStorage.getItem('instId')) {
   instIdTemp = localStorage.getItem('instId');
 }
 let tempAccount = {
-  okAccessKey: localStorage.getItem('okAccessKey'),
-  okSecretKey: localStorage.getItem('okSecretKey'),
-  okPassphrase: localStorage.getItem('okPassphrase'),
+  okAccessKey: localStorage.getItem('okAccessKey') === null ? '' : localStorage.getItem('okAccessKey'),
+  okSecretKey: localStorage.getItem('okSecretKey') === null ? '' : localStorage.getItem('okSecretKey'),
+  okPassphrase: localStorage.getItem('okPassphrase') === null ? '' : localStorage.getItem('okPassphrase'),
 }
 
 function App() {

@@ -96,7 +96,7 @@ function Form({ buyOrSell, orderType }) {
     }
 }
 
-function LimitForm({buyOrSell}) {
+function LimitForm({ buyOrSell }) {
     const [price, setPrice] = useState('');
     const [amount, setAmount] = useState('');
     const [total, setTotal] = useState('');
@@ -154,22 +154,22 @@ function LimitForm({buyOrSell}) {
         <form>
             <div className="price-input-wrapper">
                 <label htmlFor="price">价格</label>
-                <input type="number" id="price" name="price" value={price} onChange={handleInputChange}/>
+                <input type="number" id="price" name="price" value={price} onChange={handleInputChange} />
             </div>
             <div className="price-input-wrapper">
-            <label htmlFor="amount">数量</label>
-            <input type="number" id="amount" name="amount" value={amount} onChange={handleInputChange}/>
+                <label htmlFor="amount">数量</label>
+                <input type="number" id="amount" name="amount" value={amount} onChange={handleInputChange} />
             </div>
             <div className="price-input-wrapper">
                 <label htmlFor="total">金额</label>
-                <input type="number" id="total" name="total" value={total} onChange={handleInputChange}/>
+                <input type="number" id="total" name="total" value={total} onChange={handleInputChange} />
             </div>
             {buyOrSell === 'buy' ? <div className="order-panel-button buy-button">买入</div> : <div className="order-panel-button sell-button">卖出</div>}
         </form>
     )
 }
 
-function MarketForm({buyOrSell}) {
+function MarketForm({ buyOrSell }) {
     return (
         <form>
             <label htmlFor="amount">数量</label>
@@ -180,7 +180,7 @@ function MarketForm({buyOrSell}) {
     )
 }
 
-function BatchForm({buyOrSell}) {
+function BatchForm({ buyOrSell }) {
     return (
         <form>
             <label htmlFor="amount">数量</label>
