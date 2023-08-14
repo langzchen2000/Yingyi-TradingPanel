@@ -9,15 +9,20 @@ function Chart({ height, width}) {
     const [fabricCanvas, setFabricCanvas] = useState(null);
     const [timeScale, setTimeScale] = useState('15m');
     const [chartData, setChartData] = useState([]);
+    const [update, setUpdate] = useState(true);
+    
     const horiLineRef = useRef(null);
     const lastLineRef = useRef(null);
     const vertLineRef = useRef(null);
     const lastVertLineRef = useRef(null);
 
+
     const MIN_MAX_MARGIN = 20;
     const PRICE_HORI_MARGIN = 53;
     const STROKE_WIDTH = 1;
     const instId = useContext(instContext);
+    const [xRenderStart, setXRenderStart] = useState(width - PRICE_HORI_MARGIN - STROKE_WIDTH);
+
     const timeScaleSelect = ['1m', '5m', '15m', '30m', '1H', '2H', '4H', '12H', '1D']
     const styleConfig = {
         backgroundStrockColor: 'rgb(183, 183, 183)',
@@ -34,12 +39,13 @@ function Chart({ height, width}) {
         };
     }, []);
 
+
     //响应时间刻度的变化
     useEffect(() => {
         let ignore = false;
-        const intervalId = setInterval(async () => {
+        const fetchKLineData = async () => {
             try {
-                const response = await fetch(`${baseURL}/api/v5/market/candles?instId=${instId}&bar=${timeScale}`);
+                const response = await fetch(`${baseURL}/api/v5/market/candles?instId=${instId}&bar=${timeScale}&after=${Date.now()}`);
                 const data = await response.json();
                 if (!ignore) {
                     setChartData(data.data);
@@ -47,12 +53,46 @@ function Chart({ height, width}) {
             } catch (error) {
                 console.log(error);
             }
-        }, 300);
+        }
+        fetchKLineData();
+        const intervalId = setInterval(fetchKLineData, 300);
         return () => {
             clearInterval(intervalId);
             ignore = true;
         }
-    }, [timeScale, instId])
+    }, [timeScale, instId, update])
+
+    useEffect(() => {
+        drawChartData();
+    }, [xRenderStart]);
+
+    const handleMouseMove = (event) => {
+        const pointer = fabricCanvas.getPointer(event.e);
+        const posY = pointer.y;
+        const posX = Math.min(pointer.x, fabricCanvas.width - PRICE_HORI_MARGIN);
+
+        const newHoriLine = new fabric.Line(
+            [STROKE_WIDTH, posY, fabricCanvas.width - STROKE_WIDTH - PRICE_HORI_MARGIN, posY],
+            {
+                stroke: 'black',
+                strokeWidth: 1,
+                strokeDashArray: [5, 5],
+                selectable: false,
+            }
+        );
+        const newVertiLine = new fabric.Line(
+            [posX, STROKE_WIDTH, posX, fabricCanvas.height - STROKE_WIDTH],
+            {
+                stroke: 'black',
+                strokeWidth: 1,
+                strokeDashArray: [5, 5],
+                selectable: false,
+            }
+        )
+        horiLineRef.current = newHoriLine;
+        vertLineRef.current = newVertiLine;
+        drawLine();
+    }
 
     //响应画布初始化
     useLayoutEffect(() => {
@@ -64,41 +104,30 @@ function Chart({ height, width}) {
             fabricCanvas.setWidth(Math.max(width, 100));
             drawBackground();
             drawChartData();
-            const intervalId = setInterval(() => {
-                drawLine();
-            }, 10);
-            fabricCanvas.on('mouse:move', function (event) {
-                const pointer = fabricCanvas.getPointer(event.e);
-                const posY = pointer.y;
-                const posX = Math.min(pointer.x, fabricCanvas.width - PRICE_HORI_MARGIN);
-
-                const newHoriLine = new fabric.Line(
-                    [STROKE_WIDTH, posY, fabricCanvas.width - STROKE_WIDTH - PRICE_HORI_MARGIN, posY],
-                    {
-                        stroke: 'black',
-                        strokeWidth: 1,
-                        strokeDashArray: [5, 5],
-                        selectable: false,
-                    }
-                );
-                const newVertiLine = new fabric.Line(
-                    [posX, STROKE_WIDTH, posX, fabricCanvas.height - STROKE_WIDTH],
-                    {
-                        stroke: 'black',
-                        strokeWidth: 1,
-                        strokeDashArray: [5, 5],
-                        selectable: false,
-                    }
-                )
-                horiLineRef.current = newHoriLine;
-                vertLineRef.current = newVertiLine;
-            });
+            fabricCanvas.on('mouse:move', handleMouseMove);
 
             fabricCanvas.on('mouse:out', function (event) {
                 if (horiLineRef.current) {
                     horiLineRef.current = null;
                 }
             });
+            fabricCanvas.on('mouse:down', function (event) {
+                fabricCanvas.hoverCursor = 'grabbing'; 
+                fabricCanvas.moveCursor = 'grabbing';
+                fabricCanvas.off('mouse:move');
+                fabricCanvas.on('mouse:move', function (event) {
+                    handleMouseMove(event);
+                    const movementX = event.e.movementX;
+                    setXRenderStart(prevXRenderStart => prevXRenderStart + movementX);
+                });
+            });
+            fabricCanvas.on('mouse:up', function (event) {
+                fabricCanvas.hoverCursor = 'default';
+                fabricCanvas.moveCursor = 'default';
+                fabricCanvas.off('mouse:move');
+                fabricCanvas.on('mouse:move', handleMouseMove);
+            });
+
             return () => {
                 fabricCanvas.dispose();
                 clearInterval(intervalId);
@@ -139,13 +168,23 @@ function Chart({ height, width}) {
     };
 
     const drawChartData = () => {
+
         if (fabricCanvas && chartData.length > 0) {
             let max;
             let min;
+            fabricCanvas.getObjects('text').forEach(text => {
+                fabricCanvas.remove(text);
+            });
+            fabricCanvas.getObjects('rect').forEach(rect => {
+                fabricCanvas.remove(rect);
+            });
+            fabricCanvas.getObjects('line').forEach(line => {
+                fabricCanvas.remove(line);
+            });
             for (let i = 0; i < chartData.length; i++) {
                 const item = chartData[i];
                 const x = Math.min(15, Math.max((fabricCanvas.width - 50) / 30, 5));
-                const leftStart = fabricCanvas.width - PRICE_HORI_MARGIN - STROKE_WIDTH - x * (i + 1)
+                const leftStart = xRenderStart - x * (i + 1)
                 if (leftStart < 0) break;
                 max = max ? Math.max(max, item[2]) : item[2];
                 min = min ? Math.min(min, item[3]) : item[3];
@@ -155,7 +194,7 @@ function Chart({ height, width}) {
                 const item = chartData[i];
                 const x = Math.min(15, Math.max((fabricCanvas.width - 50) / 30, 5));
                 const y = (fabricCanvas.height - 2 * MIN_MAX_MARGIN) / (max - min) * (item[1] - item[4]);
-                const leftStart = fabricCanvas.width - PRICE_HORI_MARGIN - STROKE_WIDTH - x * (i + 1);
+                const leftStart = xRenderStart - x * (i + 1);
                 if (leftStart < 0) break;
                 const rect = new fabric.Rect({
                     left: leftStart,
