@@ -3,7 +3,7 @@ import { fabric } from 'fabric';
 import { instContext } from './appContext';
 import './Chart.css';
 
-function Chart({ height, width}) {
+function Chart({ height, width }) {
     const baseURL = 'https://www.okx.com'
     const canvasRef = useRef(null);
     const [fabricCanvas, setFabricCanvas] = useState(null);
@@ -11,12 +11,12 @@ function Chart({ height, width}) {
     const [chartData, setChartData] = useState([]);
     const [priceMin, setPriceMin] = useState(0);
     const [priceMax, setPriceMax] = useState(0);
-    
+
     const horiLineRef = useRef(null);
     const lastLineRef = useRef(null);
     const vertLineRef = useRef(null);
     const lastVertLineRef = useRef(null);
-
+    const handleMouseMoveRef = useRef(null);
 
     const MIN_MAX_MARGIN = 20;
     const PRICE_HORI_MARGIN = 53;
@@ -77,37 +77,40 @@ function Chart({ height, width}) {
         setXRenderStart(width - PRICE_HORI_MARGIN - STROKE_WIDTH);
     }, [timeScale, instId])
 
-    const handleMouseMove = (event) => {
-        const pointer = fabricCanvas.getPointer(event.e);
-        const posY = pointer.y;
-        const posX = Math.min(pointer.x, fabricCanvas.width - PRICE_HORI_MARGIN);
-
-        const newHoriLine = new fabric.Line(
-            [STROKE_WIDTH, posY, fabricCanvas.width - STROKE_WIDTH - PRICE_HORI_MARGIN, posY],
-            {
-                stroke: 'black',
-                strokeWidth: 1,
-                strokeDashArray: [5, 5],
-                selectable: false,
-                needRemove: false,
-                hoverCursor: 'default',
-            }
-        );
-        const newVertiLine = new fabric.Line(
-            [posX, STROKE_WIDTH, posX, fabricCanvas.height - STROKE_WIDTH],
-            {
-                stroke: 'black',
-                strokeWidth: 1,
-                strokeDashArray: [5, 5],
-                selectable: false,
-                needRemove: false,
-                hoverCursor: 'default',
-            }
-        )
-        horiLineRef.current = newHoriLine;
-        vertLineRef.current = newVertiLine;
-        drawLine();
-    }
+    useEffect(() => {
+        handleMouseMoveRef.current = (event) => {
+            const pointer = fabricCanvas.getPointer(event.e);
+            const posY = pointer.y;
+            let posX = Math.min(pointer.x, fabricCanvas.width - PRICE_HORI_MARGIN);
+            let x = Math.min(15, Math.max((fabricCanvas.width - 50) / 30, 5))
+            posX = xRenderStart + x / 2 + Math.round((posX - xRenderStart) / x) * x;
+            const newHoriLine = new fabric.Line(
+                [STROKE_WIDTH, posY, fabricCanvas.width - STROKE_WIDTH - PRICE_HORI_MARGIN, posY],
+                {
+                    stroke: 'black',
+                    strokeWidth: 1,
+                    strokeDashArray: [5, 5],
+                    selectable: false,
+                    needRemove: false,
+                    hoverCursor: 'default',
+                }
+            );
+            const newVertiLine = new fabric.Line(
+                [posX, STROKE_WIDTH, posX, fabricCanvas.height - STROKE_WIDTH],
+                {
+                    stroke: 'black',
+                    strokeWidth: 1,
+                    strokeDashArray: [5, 5],
+                    selectable: false,
+                    needRemove: false,
+                    hoverCursor: 'default',
+                }
+            )
+            horiLineRef.current = newHoriLine;
+            vertLineRef.current = newVertiLine;
+            drawLine();
+        }
+    }, [fabricCanvas, xRenderStart])
 
     //响应画布初始化
     useLayoutEffect(() => {
@@ -118,7 +121,9 @@ function Chart({ height, width}) {
             fabricCanvas.selection = false;
             fabricCanvas.setWidth(Math.max(width, 100));
             drawChartData();
-            fabricCanvas.on('mouse:move', handleMouseMove);
+            fabricCanvas.on('mouse:move', function (event) {
+                handleMouseMoveRef.current(event)
+            });
 
             fabricCanvas.on('mouse:out', function (event) {
                 if (horiLineRef.current) {
@@ -126,21 +131,24 @@ function Chart({ height, width}) {
                 }
             });
             fabricCanvas.on('mouse:down', function (event) {
+                fabricCanvas.defaultCursor = 'grabbing';
+                fabricCanvas.hoverCursor = 'grabbing';
                 fabricCanvas.off('mouse:move');
                 fabricCanvas.on('mouse:move', function (event) {
-                    handleMouseMove(event);
+                    handleMouseMoveRef.current(event);
                     const movementX = event.e.movementX;
                     setXRenderStart(prevXRenderStart => prevXRenderStart + movementX);
                 });
             });
             fabricCanvas.on('mouse:up', function (event) {
+                fabricCanvas.defaultCursor = 'default';
+                fabricCanvas.hoverCursor = 'default';
                 fabricCanvas.off('mouse:move');
-                fabricCanvas.on('mouse:move', handleMouseMove);
+                fabricCanvas.on('mouse:move', handleMouseMoveRef.current);
             });
 
             return () => {
                 fabricCanvas.dispose();
-                clearInterval(intervalId);
             };
         }
 
@@ -168,7 +176,7 @@ function Chart({ height, width}) {
                 fabricCanvas.remove(text);
             });
             fabricCanvas.getObjects('rect').forEach(rect => {
-                    fabricCanvas.remove(rect);
+                fabricCanvas.remove(rect);
             });
             fabricCanvas.getObjects('line').forEach(line => {
                 if (line.needRemove !== false) {
@@ -178,7 +186,7 @@ function Chart({ height, width}) {
             const x = Math.min(15, Math.max((fabricCanvas.width - 50) / 30, 5));
             for (let i = 0; i < chartData.length; i++) {
                 const item = chartData[i];
-                const y = (fabricCanvas.height - 2 * MIN_MAX_MARGIN) / (priceMax -priceMin) * (item[1] - item[4]);
+                const y = (fabricCanvas.height - 2 * MIN_MAX_MARGIN) / (priceMax - priceMin) * (item[1] - item[4]);
                 const leftStart = xRenderStart - x * (i + 1);
                 if (leftStart < -x) break;
                 if (leftStart > fabricCanvas.width - PRICE_HORI_MARGIN - 2 * x) continue;
@@ -244,10 +252,10 @@ function Chart({ height, width}) {
         drawChartData();
         drawLine();
     }, [chartData]);
-    
+
     const timeScaleButtons = timeScaleSelect.map((item) => {
         return (
-            <button key={item} onClick={() => {if(item !== timeScale) setTimeScale(item)}} className={item === timeScale ? 'selected' : ''}>
+            <button key={item} onClick={() => { if (item !== timeScale) setTimeScale(item) }} className={item === timeScale ? 'selected' : ''}>
                 {item}
             </button>
         )
@@ -255,7 +263,7 @@ function Chart({ height, width}) {
 
     return (
         <div className="chart">
-            <canvas ref={canvasRef} className="inner-canvas"/>
+            <canvas ref={canvasRef} className="inner-canvas" />
             <div className="time-scale-wrapper">
                 {timeScaleButtons}
             </div>
