@@ -150,7 +150,6 @@ function Chart({ height, width}) {
 
     const drawBackground = () => {
         if (fabricCanvas) {
-            fabricCanvas.clear();  // 清除canvas内容
             const rect = new fabric.Rect({
                 left: 0,
                 top: 0,
@@ -161,6 +160,7 @@ function Chart({ height, width}) {
                 strokeWidth: STROKE_WIDTH,
                 selectable: false,
                 hoverCursor: 'default',
+                isBackground: true,
             });
 
             fabricCanvas.add(rect);
@@ -176,7 +176,9 @@ function Chart({ height, width}) {
                 fabricCanvas.remove(text);
             });
             fabricCanvas.getObjects('rect').forEach(rect => {
-                fabricCanvas.remove(rect);
+                if (!rect.isBackground) {
+                    fabricCanvas.remove(rect);
+                }
             });
             fabricCanvas.getObjects('line').forEach(line => {
                 fabricCanvas.remove(line);
