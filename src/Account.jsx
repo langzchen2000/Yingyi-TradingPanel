@@ -44,7 +44,7 @@ function Account() {
         return () => {
             
         }
-    }, [account, instId])
+    }, [account])
 
     const renderAccount = () => {
         if (isLoading) {
