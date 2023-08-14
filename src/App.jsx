@@ -6,6 +6,7 @@ import Sidebar from './Sidebar'
 import Header from './Header'
 import OrderPanel from './OrderPanel'
 import OrderHistory from './OrderHistory'
+import Account from './Account'
 
 let instIdTemp = 'BTC-USDT';
 if (localStorage.getItem('instId')) {
@@ -51,7 +52,7 @@ function App() {
             <div className='panel'>
               {showLeftPanel ? (<div className='left-panel-wrapper'>
                 {showLeftPanel === 'order history' ? (<OrderHistory />) : null}
-                {showLeftPanel === 'acount' ? (<div>acount</div>) : null}
+                {showLeftPanel === 'acount' ? (<Account />) : null}
               </div>) : null}
               <div className='middle-panel-wrapper'>
                 <Chart height={chartHeight} width={chartWidth} />

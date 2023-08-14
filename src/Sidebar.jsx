@@ -53,8 +53,8 @@ function Sidebar({ setShowLeftPanel, setChartWidth, setAccount }) {
                 <label htmlFor="okPassphrase">okPassphrase</label>
                 <input type="text" id="okPassphrase" value={tempAccount.okPassphrase} onChange={(e) => setTempAccount(prev => ({ ...prev, okPassphrase: e.target.value }))} />
                 <div className="modal-button-wrapper">
-                    <button class="exit-modal-button" onClick={() => { setTempAccount(account); setModalInvisible() }}>Exit</button>
-                    <button class='save-modal-button' onClick={() => { handleModalSubmit() }}>Save</button>
+                    <button className="exit-modal-button" onClick={() => { setTempAccount(account); setModalInvisible() }}>Exit</button>
+                    <button className='save-modal-button' onClick={() => { handleModalSubmit() }}>Save</button>
                 </div>
             </dialog>
         </div>
