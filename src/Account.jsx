@@ -53,7 +53,7 @@ function Account() {
         else if (accountDetails.length > 0) {
             return accountDetails.map((item) => {
                 return (<div key={item.ccy} className="account-block">
-                    <div className="account-name">{item.ccy} <span className="USD worth">{`${Number(item.eqUsd).toFixed(4) < 0.01 ? '<$0.01' : Number(item.eqUsd).toFixed(4).toString()}`}</span></div>
+                    <div className="account-name">{item.ccy} <span className="USD worth">{`${Number(item.eqUsd) < 0.01 ? '<$0.01' : Number(item.eqUsd).toFixed(4).toString()}`}</span></div>
                     <div className="account-balance">{item.eq}</div>
                 </div>)
             })
@@ -65,7 +65,7 @@ function Account() {
 
     return (
         <div className="account">
-            <div className="account-title">账户资产</div>
+            <div className="account-title">账户资产 {Number(accountTotalEquity) < 0.01 ? '<$0.01' : '$' + Number(accountTotalEquity).toFixed(4).toString()}</div>
             <div className="account-list">
                 {renderAccount()}
             </div>
