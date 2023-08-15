@@ -1,7 +1,8 @@
-import React, { useContext} from 'react';
+import { useContext} from 'react';
 import { instContext } from './appContext';
 import './Header.css'
 
+// eslint-disable-next-line react/prop-types
 function Header({setInstId}) {
     const instId = useContext(instContext);
     const instIdOption = ['BTC-USDT', 'ETH-USDT', 'XRP-USDT'];

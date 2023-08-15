@@ -1,11 +1,10 @@
-import {useEffect, useRef, useState, useContext} from 'react';
-import { accountContext, instContext } from './appContext.jsx'
+import {useEffect, useState, useContext} from 'react';
+import { accountContext} from './appContext.jsx'
 import CryptoJS from 'crypto-js'
 import './Account.css'
 
 function Account() {
     const account = useContext(accountContext);
-    const instId = useContext(instContext);
     const [isLoading, setIsLoading] = useState(true);
     const [accountDetails, setAccountDetails] = useState([]);
     const [accountTotalEquity, setAccountTotalEquity] = useState(0);
