@@ -23,6 +23,7 @@ function Chart({ height, width }) {
     const MIN_MAX_MARGIN = 20;
     const PRICE_HORI_MARGIN = 53;
     const STROKE_WIDTH = 1;
+    const DATE_AXIS_HEIGHT = 20;
     const instId = useContext(instContext);
     const [xRenderStart, setXRenderStart] = useState(width - PRICE_HORI_MARGIN - STROKE_WIDTH);
 
@@ -194,15 +195,16 @@ function Chart({ height, width }) {
                 }
             });
             const x = Math.min(15, Math.max((fabricCanvas.width - 50) / 30, 5));
+            const heightFactor = (fabricCanvas.height - 2 * MIN_MAX_MARGIN - DATE_AXIS_HEIGHT) / (priceMax - priceMin);
             for (let i = 0; i < chartData.length; i++) {
                 const item = chartData[i];
-                const y = (fabricCanvas.height - 2 * MIN_MAX_MARGIN) / (priceMax - priceMin) * (item[1] - item[4]);
+                const y = heightFactor * (item[1] - item[4]);
                 const leftStart = xRenderStart - x * (i + 1);
                 if (leftStart < -x) break;
                 if (leftStart > fabricCanvas.width - PRICE_HORI_MARGIN - 2 * x) continue;
                 const rect = new fabric.Rect({
                     left: leftStart,
-                    top: fabricCanvas.height - (MIN_MAX_MARGIN + (item[1] - priceMin) / (priceMax - priceMin) * (fabricCanvas.height - 2 * MIN_MAX_MARGIN)),
+                    top: fabricCanvas.height - ( DATE_AXIS_HEIGHT + MIN_MAX_MARGIN + (item[1] - priceMin) * heightFactor),
                     fill: item[1] > item[4] ? styleConfig.redColor : styleConfig.greenColor,  // 填充颜色, 红跌绿涨
                     width: x,
                     height: y,
@@ -212,9 +214,9 @@ function Chart({ height, width }) {
                 const wick = new fabric.Line(
                     [
                         leftStart + x / 2,
-                        fabricCanvas.height - (MIN_MAX_MARGIN + (item[2] - priceMin) / (priceMax - priceMin) * (fabricCanvas.height - 2 * MIN_MAX_MARGIN)),
+                        fabricCanvas.height - ( DATE_AXIS_HEIGHT + MIN_MAX_MARGIN + (item[2] - priceMin) * heightFactor),
                         leftStart + x / 2,
-                        fabricCanvas.height - (MIN_MAX_MARGIN + (item[3] - priceMin) / (priceMax - priceMin) * (fabricCanvas.height - 2 * MIN_MAX_MARGIN)),
+                        fabricCanvas.height - ( DATE_AXIS_HEIGHT + MIN_MAX_MARGIN + (item[3] - priceMin) * heightFactor),
                     ],
                     {
                         fill: item[1] > item[4] ? styleConfig.redColor : styleConfig.greenColor,
@@ -229,7 +231,7 @@ function Chart({ height, width }) {
             }
             const mintxt = new fabric.Text(priceMin.toString(), {
                 left: fabricCanvas.width - PRICE_HORI_MARGIN + STROKE_WIDTH,
-                top: fabricCanvas.height - MIN_MAX_MARGIN,
+                top: fabricCanvas.height - MIN_MAX_MARGIN - DATE_AXIS_HEIGHT,
                 fontSize: 15,
                 selectable: false,
                 hoverCursor: 'default',
