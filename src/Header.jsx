@@ -15,7 +15,7 @@ function Header({setInstId}) {
                 <div>盈益终端 V0</div>
             </div> 
             <div className='instId-selection'>
-                <select onChange={handleInstIdChange}>
+                <select value={instId} onChange={handleInstIdChange}>
                     {instIdOption.map((item, index) => {
                         return (
                             <option key={index} value={item}>{item}</option>
