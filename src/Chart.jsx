@@ -17,6 +17,8 @@ function Chart({ height, width }) {
     const vertLineRef = useRef(null);
     const lastVertLineRef = useRef(null);
     const handleMouseMoveRef = useRef(null);
+    const initialMouseXRef = useRef(null);
+    const initialXRenderStartRef = useRef(null);
 
     const MIN_MAX_MARGIN = 20;
     const PRICE_HORI_MARGIN = 53;
@@ -78,6 +80,10 @@ function Chart({ height, width }) {
     }, [timeScale, instId])
 
     useEffect(() => {
+        initialXRenderStartRef.current = xRenderStart;
+    }, [xRenderStart]);
+
+    useEffect(() => {
         handleMouseMoveRef.current = (event) => {
             const pointer = fabricCanvas.getPointer(event.e);
             const posY = pointer.y;
@@ -130,14 +136,18 @@ function Chart({ height, width }) {
                     horiLineRef.current = null;
                 }
             });
+            
             fabricCanvas.on('mouse:down', function (event) {
+                initialMouseXRef.current = event.e.clientX;
+                let xRenderStart = initialXRenderStartRef.current;
                 fabricCanvas.defaultCursor = 'grabbing';
                 fabricCanvas.hoverCursor = 'grabbing';
                 fabricCanvas.off('mouse:move');
                 fabricCanvas.on('mouse:move', function (event) {
                     handleMouseMoveRef.current(event);
-                    const movementX = event.e.movementX;
-                    setXRenderStart(prevXRenderStart => prevXRenderStart + movementX);
+                    const movementX = event.e.clientX - initialMouseXRef.current
+                    //console.log(movementX);
+                    setXRenderStart(xRenderStart + movementX);
                 });
             });
             fabricCanvas.on('mouse:up', function (event) {
