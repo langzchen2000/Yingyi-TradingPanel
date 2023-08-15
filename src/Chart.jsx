@@ -26,7 +26,7 @@ function Chart({ height, width }) {
     const STROKE_WIDTH = 1;
     const DATE_AXIS_HEIGHT = 20;
     const instId = useContext(instContext);
-    const [xRenderStart, setXRenderStart] = useState(width - PRICE_HORI_MARGIN - STROKE_WIDTH);
+    const [xRenderStart, setXRenderStart] = useState(width - PRICE_HORI_MARGIN - STROKE_WIDTH - 15);
     const [YRenderOffset, setYRenderOffset] = useState(0);
 
     const timeScaleSelect = ['1m', '5m', '15m', '30m', '1H', '2H', '4H', '12H', '1D']
@@ -214,7 +214,7 @@ function Chart({ height, width }) {
                 const y = heightFactor * (item[1] - item[4]);
                 const leftStart = xRenderStart - x * (i + 1);
                 if (leftStart < -x) break;
-                if (leftStart > fabricCanvas.width - PRICE_HORI_MARGIN - 2 * x) continue;
+                if (leftStart > fabricCanvas.width - PRICE_HORI_MARGIN - x) continue;
                 const rect = new fabric.Rect({
                     left: leftStart,
                     top: fabricCanvas.height - (DATE_AXIS_HEIGHT + MIN_MAX_MARGIN + (item[1] - priceMin) * heightFactor) + YRenderOffset,
@@ -257,8 +257,20 @@ function Chart({ height, width }) {
                 selectable: false,
                 hoverCursor: 'default',
             })
+            const priceLine = new fabric.Line(
+                [STROKE_WIDTH, (priceMax - chartData[0][4]) * heightFactor + YRenderOffset + MIN_MAX_MARGIN, fabricCanvas.width - PRICE_HORI_MARGIN, (priceMax - chartData[0][4]) * heightFactor + YRenderOffset + MIN_MAX_MARGIN], 
+                {
+                    stroke: 'grey',
+                    strokeWidth: 1,
+                    strokeDashArray: [5, 5],
+                    selectable: false,
+                    hoverCursor: 'default',
+
+                }
+            )
             fabricCanvas.add(mintxt);
             fabricCanvas.add(maxtxt);
+            fabricCanvas.add(priceLine);
         }
     };
 
