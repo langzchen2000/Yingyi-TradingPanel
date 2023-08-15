@@ -30,7 +30,6 @@ function OrderHistory() {
                 })
                 
                 const data = await response.json()
-                console.log(data.data)
                 setIsLoading(false)
                 setHistoryData(data.data)
             } catch (error) {
