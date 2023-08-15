@@ -177,7 +177,7 @@ function Chart({ height, width }) {
                 const newDatetext = new fabric.Text(
                     displayDateString, {
                     left: posX,
-                    top: fabricCanvas.height - DATE_AXIS_HEIGHT,
+                    top: fabricCanvas.height - DATE_AXIS_HEIGHT - 2,
                     originX: 'center',
                     fontSize: 20,
                     backgroundColor: 'black',
@@ -259,7 +259,8 @@ function Chart({ height, width }) {
             });
             const heightFactor = (fabricCanvas.height - 2 * MIN_MAX_MARGIN - DATE_AXIS_HEIGHT) / (priceMax - priceMin);
             const priceChangePerPixel = (priceMax - priceMin) / (fabricCanvas.height - 2 * MIN_MAX_MARGIN - DATE_AXIS_HEIGHT);
-            for (let i = 0; i < chartData.length; i++) {
+            const startIndex = xRenderStart - fabricCanvas.width - PRICE_HORI_MARGIN - STROKE_WIDTH > 0 ? Math.floor((xRenderStart - fabricCanvas.width + PRICE_HORI_MARGIN + STROKE_WIDTH) / lineWidthRef.current) : 0;
+            for (let i = startIndex; i < chartData.length; i++) {
                 const item = chartData[i];
                 const y = heightFactor * (item[1] - item[4]);
                 const leftStart = xRenderStart - lineWidthRef.current * (i + 1);
