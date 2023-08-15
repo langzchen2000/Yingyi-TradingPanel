@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useContext, useCallback } from 'react';
 import { fabric } from 'fabric';
 import { instContext } from './appContext';
 import './Chart.css';
+import {throttle} from 'lodash'
 const MIN_MAX_MARGIN = 20;
 const PRICE_HORI_MARGIN = 53;
 const STROKE_WIDTH = 1;
@@ -41,7 +42,7 @@ function Chart({ height, width }) {
     const vertLineRef = useRef(null);
     const lastVertLineRef = useRef(null);
 
-    const XRenderStartRef = useRef(width - PRICE_HORI_MARGIN - STROKE_WIDTH - 15);
+    const XRenderStartRef = useRef(Math.round(width - PRICE_HORI_MARGIN - STROKE_WIDTH - 15));
     const YRenderOffsetRef = useRef(0);
     const lastDateTimeRef = useRef(null);
     const datetextRef = useRef(null);
@@ -56,6 +57,7 @@ function Chart({ height, width }) {
         const canvas = new fabric.Canvas(canvasRef.current);
         console.log(`canvas initialized ${canvas}`);
         fabricCanvasRef.current = canvas;
+        fabricCanvasRef.current.imageSmoothingEnabled = false;
         return () => {
             fabricCanvasRef.current.dispose();
         };
@@ -84,16 +86,16 @@ function Chart({ height, width }) {
             });
             const heightFactor = (fabricCanvasRef.current.height - 2 * MIN_MAX_MARGIN - DATE_AXIS_HEIGHT) / (priceMax - priceMin);
             const priceChangePerPixel = (priceMax - priceMin) / (fabricCanvasRef.current.height - 2 * MIN_MAX_MARGIN - DATE_AXIS_HEIGHT);
-            const startIndex = XRenderStartRef.current - fabricCanvasRef.current.width - PRICE_HORI_MARGIN - STROKE_WIDTH > 0 ? Math.floor((XRenderStartRef.current - fabricCanvasRef.current.width + PRICE_HORI_MARGIN + STROKE_WIDTH) / lineWidthRef.current) : 0;
+            const tempValue = XRenderStartRef.current - fabricCanvasRef.current.width - PRICE_HORI_MARGIN - STROKE_WIDTH;
+            const startIndex = tempValue > 0 ? Math.floor((tempValue / lineWidthRef.current)) : 0;
             for (let i = startIndex; i < chartDataRef.current.length; i++) {
                 const item = chartDataRef.current[i];
-                const y = heightFactor * (item[1] - item[4]);
-                const leftStart = XRenderStartRef.current - lineWidthRef.current * (i + 1);
+                const y = Math.abs(heightFactor * (item[1] - item[4])) < 1 ? 1 : Math.round(heightFactor * (item[1] - item[4]));
+                const leftStart = Math.round(XRenderStartRef.current - lineWidthRef.current * (i + 1));
                 if (leftStart < -lineWidthRef.current) break;
-                if (leftStart > fabricCanvasRef.current.width - PRICE_HORI_MARGIN - lineWidthRef.current) continue;
                 const rect = new fabric.Rect({
-                    left: leftStart,
-                    top: fabricCanvasRef.current.height - (DATE_AXIS_HEIGHT + MIN_MAX_MARGIN + (item[1] - priceMin) * heightFactor) + YRenderOffsetRef.current,
+                    left: Math.round(leftStart),
+                    top: Math.round(fabricCanvasRef.current.height - (DATE_AXIS_HEIGHT + MIN_MAX_MARGIN + (item[1] - priceMin) * heightFactor) + YRenderOffsetRef.current),
                     fill: item[1] > item[4] ? styleConfig.redColor : styleConfig.greenColor,  // 填充颜色, 红跌绿涨
                     width: lineWidthRef.current,
                     height: y,
@@ -119,14 +121,14 @@ function Chart({ height, width }) {
                 fabricCanvasRef.current.add(rect);
                 fabricCanvasRef.current.add(wick);
             }
-            const mintxt = new fabric.Text((priceMin + YRenderOffsetRef.current * priceChangePerPixel).toFixed(2).toString(), {
+            const mintxt = new fabric.Text((priceMin + YRenderOffsetRef.current * priceChangePerPixel).toFixed(1).toString(), {
                 left: fabricCanvasRef.current.width - PRICE_HORI_MARGIN + STROKE_WIDTH,
                 top: fabricCanvasRef.current.height - MIN_MAX_MARGIN - DATE_AXIS_HEIGHT,
                 fontSize: 15,
                 selectable: false,
                 hoverCursor: 'default',
             })
-            const maxtxt = new fabric.Text((priceMax + YRenderOffsetRef.current * priceChangePerPixel).toFixed(2).toString(), {
+            const maxtxt = new fabric.Text((priceMax + YRenderOffsetRef.current * priceChangePerPixel).toFixed(1).toString(), {
                 left: fabricCanvasRef.current.width - PRICE_HORI_MARGIN + STROKE_WIDTH,
                 top: MIN_MAX_MARGIN,
                 fontSize: 15,
@@ -145,7 +147,7 @@ function Chart({ height, width }) {
     
                 }
             )
-            const priceTag = new fabric.Text(Number(chartDataRef.current[0][4]).toFixed(2).toString(), {
+            const priceTag = new fabric.Text(Number(chartDataRef.current[0][4]).toFixed(1).toString(), {
                 left: fabricCanvasRef.current.width - PRICE_HORI_MARGIN + STROKE_WIDTH,
                 top: (priceMax - chartDataRef.current[0][4]) * heightFactor + YRenderOffsetRef.current + MIN_MAX_MARGIN - 10,
                 fontSize: 15,
@@ -257,6 +259,7 @@ useEffect(() => {
             posX = XRenderStartRef.current + lineWidthRef.current / 2 + numOfKLineInBetween * lineWidthRef.current;
             const tempDate = new Date(lastDateTimeRef.current + (numOfKLineInBetween + 1) * timeScaleToMiliseconds[timeScale]);
             const displayDateString = tempDate.toDateString() + ' ' + tempDate.toTimeString();
+            const throttledDrawLine = throttle(drawLine, 100);
             const newHoriLine = new fabric.Line(
                 [STROKE_WIDTH, posY, fabricCanvasRef.current.width - STROKE_WIDTH - PRICE_HORI_MARGIN, posY],
                 {
@@ -292,8 +295,10 @@ useEffect(() => {
             horiLineRef.current = newHoriLine;
             vertLineRef.current = newVertiLine;
             datetextRef.current = newDatetext;
-            drawLine();
+            throttledDrawLine();
         }
+
+        const throttledDrawChartData = throttle(drawChartData, 150);
 
         fabricCanvasRef.current.on('mouse:move', function (event) {
             handleMouseMove(event)
@@ -323,7 +328,8 @@ useEffect(() => {
                 //console.log(movementX);
                 XRenderStartRef.current = initXRenderStart + movementX;
                 YRenderOffsetRef.current = initYRenderOffset + movementY;
-                drawChartData();
+                throttledDrawChartData();
+                
             });
         });
 
@@ -333,6 +339,8 @@ useEffect(() => {
             fabricCanvasRef.current.off('mouse:move');
             fabricCanvasRef.current.on('mouse:move', (event) => handleMouseMove(event));
         });
+
+        fabricCanvasRef.current.on()
     }
 }, [timeScale, instId, drawLine, drawChartData])
 
