@@ -1,7 +1,11 @@
-import React, { useEffect, useRef, useState, useLayoutEffect, useContext } from 'react';
+import React, { useEffect, useRef, useState, useLayoutEffect, useContext, useCallback } from 'react';
 import { fabric } from 'fabric';
 import { instContext } from './appContext';
 import './Chart.css';
+const MIN_MAX_MARGIN = 20;
+const PRICE_HORI_MARGIN = 53;
+const STROKE_WIDTH = 1;
+const DATE_AXIS_HEIGHT = 20;
 
 function Chart({ height, width }) {
     const baseURL = 'https://www.okx.com'
@@ -25,10 +29,7 @@ function Chart({ height, width }) {
     const lastDateTextRef = useRef(null);
     const lineWidthRef = useRef(10);
 
-    const MIN_MAX_MARGIN = 20;
-    const PRICE_HORI_MARGIN = 53;
-    const STROKE_WIDTH = 1;
-    const DATE_AXIS_HEIGHT = 20;
+
     const instId = useContext(instContext);
     const [xRenderStart, setXRenderStart] = useState(width - PRICE_HORI_MARGIN - STROKE_WIDTH - 15);
     const [YRenderOffset, setYRenderOffset] = useState(0);
@@ -242,7 +243,8 @@ function Chart({ height, width }) {
 
 
 
-    const drawChartData = () => {
+    const drawChartData = useCallback(() => {
+
 
         if (fabricCanvas && chartData.length > 0) {
 
@@ -259,11 +261,11 @@ function Chart({ height, width }) {
             });
             const heightFactor = (fabricCanvas.height - 2 * MIN_MAX_MARGIN - DATE_AXIS_HEIGHT) / (priceMax - priceMin);
             const priceChangePerPixel = (priceMax - priceMin) / (fabricCanvas.height - 2 * MIN_MAX_MARGIN - DATE_AXIS_HEIGHT);
-            const startIndex = xRenderStart - fabricCanvas.width - PRICE_HORI_MARGIN - STROKE_WIDTH > 0 ? Math.floor((xRenderStart - fabricCanvas.width + PRICE_HORI_MARGIN + STROKE_WIDTH) / lineWidthRef.current) : 0;
+            const startIndex = initialXRenderStartRef.current - fabricCanvas.width - PRICE_HORI_MARGIN - STROKE_WIDTH > 0 ? Math.floor((xRenderStart - fabricCanvas.width + PRICE_HORI_MARGIN + STROKE_WIDTH) / lineWidthRef.current) : 0;
             for (let i = startIndex; i < chartData.length; i++) {
                 const item = chartData[i];
                 const y = heightFactor * (item[1] - item[4]);
-                const leftStart = xRenderStart - lineWidthRef.current * (i + 1);
+                const leftStart = initialXRenderStartRef.current - lineWidthRef.current * (i + 1);
                 if (leftStart < -lineWidthRef.current) break;
                 if (leftStart > fabricCanvas.width - PRICE_HORI_MARGIN - lineWidthRef.current) continue;
                 const rect = new fabric.Rect({
@@ -334,9 +336,9 @@ function Chart({ height, width }) {
             fabricCanvas.add(priceLine);
             fabricCanvas.add(priceTag);
         }
-    };
+    }, [fabricCanvas, chartData, priceMax, priceMin, YRenderOffset]);
 
-    const drawLine = () => {
+    const drawLine = useCallback(() => {
         if (fabricCanvas) {
             if (lastLineRef.current) {
                 fabricCanvas.remove(lastLineRef.current);
@@ -364,7 +366,7 @@ function Chart({ height, width }) {
             }
 
         }
-    }
+    }, [fabricCanvas]);
 
 
     useEffect(() => {
