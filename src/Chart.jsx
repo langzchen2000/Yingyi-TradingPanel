@@ -90,16 +90,15 @@ function Chart({ height, width }) {
             const wicks = chartObjectsRef.current.wicks;
             const heightFactor = (fabricCanvasRef.current.height - 2 * MIN_MAX_MARGIN - DATE_AXIS_HEIGHT) / (priceMax - priceMin);
             const priceChangePerPixel = (priceMax - priceMin) / (fabricCanvasRef.current.height - 2 * MIN_MAX_MARGIN - DATE_AXIS_HEIGHT);
-            const tempValue = XRenderStartRef.current - fabricCanvasRef.current.width - PRICE_HORI_MARGIN - STROKE_WIDTH;
-            const startIndex = tempValue > 0 ? Math.floor((tempValue / lineWidthRef.current)) : 0;
+
             if (XRenderStartRef.current - lineWidthRef.current * chartDataRef.current.length > 0) {
                 fetchMoreData();
             }
-            for (let i = startIndex; i < chartDataRef.current.length; i++) {
+            for (let i = 0; i < chartDataRef.current.length; i++) {
                 const item = chartDataRef.current[i];
                 const y = Math.abs(heightFactor * (item[1] - item[4])) < 1 ? 1 : Math.round(heightFactor * (item[1] - item[4]));
                 const leftStart = Math.round(XRenderStartRef.current - lineWidthRef.current * (i + 1));
-                if (leftStart < -lineWidthRef.current) break;
+                //if (leftStart < -lineWidthRef.current) break;
                 if (rects[i]) {
                     rects[i].set({
                         left: Math.round(leftStart),
@@ -197,7 +196,6 @@ function Chart({ height, width }) {
             })
             fabricCanvasRef.current.add(mintxt);
             fabricCanvasRef.current.add(maxtxt);
-            fabricCanvasRef.current.add(priceLine);
             fabricCanvasRef.current.add(priceTag);
         }
     }, [priceMax, priceMin, fetchMoreData]);
@@ -348,7 +346,7 @@ function Chart({ height, width }) {
                 throttledDrawLine();
             }
 
-            const throttledDrawChartData = throttle(drawChartData, 150);
+            const throttledDrawChartData = throttle(drawChartData, 50);
 
             fabricCanvasRef.current.on('mouse:move', function (event) {
                 handleMouseMove(event)
@@ -388,6 +386,18 @@ function Chart({ height, width }) {
                 fabricCanvasRef.current.hoverCursor = 'default';
                 fabricCanvasRef.current.off('mouse:move');
                 fabricCanvasRef.current.on('mouse:move', (event) => handleMouseMove(event));
+            });
+
+            fabricCanvasRef.current.on('mouse:wheel', function (event) {
+                console.log('triggered')
+                event.e.preventDefault();
+                if (event.e.deltaY > 0) {
+                    lineWidthRef.current = Math.max(lineWidthRef.current - 1, 2);
+                    drawChartData()
+                } else {
+                    lineWidthRef.current = Math.min(lineWidthRef.current + 1, 20);
+                    drawChartData();
+                }
             });
 
             fabricCanvasRef.current.on()
