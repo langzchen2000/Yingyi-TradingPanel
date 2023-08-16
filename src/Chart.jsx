@@ -64,11 +64,14 @@ function Chart({ height, width }) {
 
     }, []);
 
-    useEffect(() => {
-        fabricCanvasRef.current.setHeight(height);
-        fabricCanvasRef.current.selection = false;
-        fabricCanvasRef.current.setWidth(Math.max(width, 100));
-    }, [height, width]);
+    const fetchMoreData = useCallback (async () => {
+        const response = await fetch(`${baseURL}/api/v5/market/candles?instId=${instId}&bar=${timeScale}&after=${chartDataRef.current[chartDataRef.current.length - 1][0] - 1}&limit=100`);
+        const data = await response.json();
+        console.log('fetching more data')
+        if(chartDataRef.current[chartDataRef.current.length - 1][0] - data.data[0][0] == timeScaleToMiliseconds[timeScale]) {
+            chartDataRef.current = [...chartDataRef.current, ...data.data]
+        }
+    }, [timeScale, instId])
 
     const drawChartData = useCallback(() => {
         if (fabricCanvasRef.current && chartDataRef.current.length > 0) {
@@ -88,6 +91,9 @@ function Chart({ height, width }) {
             const priceChangePerPixel = (priceMax - priceMin) / (fabricCanvasRef.current.height - 2 * MIN_MAX_MARGIN - DATE_AXIS_HEIGHT);
             const tempValue = XRenderStartRef.current - fabricCanvasRef.current.width - PRICE_HORI_MARGIN - STROKE_WIDTH;
             const startIndex = tempValue > 0 ? Math.floor((tempValue / lineWidthRef.current)) : 0;
+            if (XRenderStartRef.current - lineWidthRef.current * chartDataRef.current.length > 0) {
+                fetchMoreData();
+            }
             for (let i = startIndex; i < chartDataRef.current.length; i++) {
                 const item = chartDataRef.current[i];
                 const y = Math.abs(heightFactor * (item[1] - item[4])) < 1 ? 1 : Math.round(heightFactor * (item[1] - item[4]));
@@ -121,6 +127,7 @@ function Chart({ height, width }) {
                 fabricCanvasRef.current.add(rect);
                 fabricCanvasRef.current.add(wick);
             }
+
             const mintxt = new fabric.Text((priceMin + YRenderOffsetRef.current * priceChangePerPixel).toFixed(1).toString(), {
                 left: fabricCanvasRef.current.width - PRICE_HORI_MARGIN + STROKE_WIDTH,
                 top: fabricCanvasRef.current.height - MIN_MAX_MARGIN - DATE_AXIS_HEIGHT,
@@ -161,9 +168,20 @@ function Chart({ height, width }) {
             fabricCanvasRef.current.add(priceLine);
             fabricCanvasRef.current.add(priceTag);
         }
-    }, [priceMax, priceMin]);
+    }, [priceMax, priceMin, fetchMoreData]);
+
+    useEffect(() => {
+        fabricCanvasRef.current.setHeight(height);
+        fabricCanvasRef.current.selection = false;
+        fabricCanvasRef.current.setWidth(Math.max(width, 100));
+        if (chartDataRef.current.length > 0) {
+            drawChartData()
+        }
+    }, [height, width, drawChartData]);
 
 
+
+    
     //响应时间刻度的变化
     useEffect(() => {
         let ignore = false;
@@ -313,6 +331,7 @@ useEffect(() => {
             }
         });
 
+
         fabricCanvasRef.current.on('mouse:down', function (event) {
             const initialMouseX = event.e.clientX;
             const initialMouseY = event.e.clientY;
@@ -329,7 +348,6 @@ useEffect(() => {
                 XRenderStartRef.current = initXRenderStart + movementX;
                 YRenderOffsetRef.current = initYRenderOffset + movementY;
                 throttledDrawChartData();
-                
             });
         });
 
