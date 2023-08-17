@@ -193,6 +193,51 @@ function Chart({ height, width }) {
                     horiLineGridTag.current.push(newhoriLineGridTag);
                 }
             }
+            const priceY = (maxPriceRef.current - chartDataRef.current[0][4]) * heightFactor;
+            if (priceLineRef.current) {
+                priceLineRef.current.set({
+                    y1: priceY,
+                    y2: priceY,
+                    x2: fabricCanvasRef.current.width - PRICE_HORI_MARGIN,
+                })
+                priceLineRef.current.setCoords();
+            } else {
+                const priceLine = new fabric.Line(
+                    [0, priceY, fabricCanvasRef.current.width - PRICE_HORI_MARGIN, priceY],
+                    {
+                        stroke: 'grey',
+                        strokeWidth: 1,
+                        strokeDashArray: [5, 5],
+                        selectable: false,
+                        hoverCursor: 'default',
+                    }
+                )
+                priceLineRef.current = priceLine;
+                fabricCanvasRef.current.add(priceLine);
+            }
+            if (priceTagRef.current) {
+                priceTagRef.current.set({
+                    top: priceY,
+                    text: Number(chartDataRef.current[0][4]).toFixed(1).toString(),
+                    left: 0,
+                })
+                priceTagRef.current.setCoords();
+                fabricPriceCanvasRef.current.bringToFront(priceTagRef.current);
+            } else {
+                const priceTag = new fabric.Text(Number(chartDataRef.current[0][4]).toFixed(1).toString(), {
+                    left: 0,
+                    top: priceY,
+                    originY: 'center',
+                    fontSize: 15,
+                    selectable: false,
+                    hoverCursor: 'default',
+                    backgroundColor: 'black',
+                    fill: 'white',
+                })
+                priceTagRef.current = priceTag;
+                fabricPriceCanvasRef.current.add(priceTag);
+                fabricPriceCanvasRef.current.bringToFront(priceTagRef.current);
+            }
             if (lastRenderRange.current.length == 2) {
                 for (let i = lastRenderRange.current[0]; i <= Math.min(lastRenderRange.current[1], chartDataRef.current.length - 1); i++) {
                     if (rects[i]) rects[i].set({
@@ -268,52 +313,6 @@ function Chart({ height, width }) {
                 }
             }
 
-            //使得gridLine之间的间距大于100px
-
-            const priceY = (maxPriceRef.current - chartDataRef.current[0][4]) * heightFactor;
-            if (priceLineRef.current) {
-                priceLineRef.current.set({
-                    y1: priceY,
-                    y2: priceY,
-                    x2: fabricCanvasRef.current.width - PRICE_HORI_MARGIN,
-                })
-                priceLineRef.current.setCoords();
-            } else {
-                const priceLine = new fabric.Line(
-                    [0, priceY, fabricCanvasRef.current.width - PRICE_HORI_MARGIN, priceY],
-                    {
-                        stroke: 'grey',
-                        strokeWidth: 1,
-                        strokeDashArray: [5, 5],
-                        selectable: false,
-                        hoverCursor: 'default',
-                    }
-                )
-                priceLineRef.current = priceLine;
-                fabricCanvasRef.current.add(priceLine);
-            }
-            if (priceTagRef.current) {
-                priceTagRef.current.set({
-                    top: priceY,
-                    text: Number(chartDataRef.current[0][4]).toFixed(1).toString(),
-                    left: 0,
-                })
-                priceTagRef.current.setCoords();
-            } else {
-                const priceTag = new fabric.Text(Number(chartDataRef.current[0][4]).toFixed(1).toString(), {
-                    left: 0,
-                    top: priceY,
-                    originY: 'center',
-                    fontSize: 15,
-                    selectable: false,
-                    hoverCursor: 'default',
-                    backgroundColor: 'black',
-                    fill: 'white',
-                })
-                priceTagRef.current = priceTag;
-                fabricPriceCanvasRef.current.add(priceTag);
-                fabricPriceCanvasRef.current.bringToFront(priceTagRef.current);
-            }
             fabricCanvasRef.current.renderAll();
             fabricPriceCanvasRef.current.renderAll();
             
