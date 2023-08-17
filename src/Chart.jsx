@@ -208,23 +208,23 @@ function Chart({ height, width }) {
             lastRenderRange.current = [rangeStart, rangeEnd];
             for (let i = rangeStart; i <= Math.min(chartDataRef.current.length - 1, rangeEnd) ; i++) {
                 const item = chartDataRef.current[i];
-                const y = Math.abs(heightFactor * (item[1] - item[4])) < 1 ? 1 : Math.round(heightFactor * (item[1] - item[4]));
+                const y = Math.abs(heightFactor * (item[1] - item[4])) < 1 ? 1 : heightFactor * (item[1] - item[4]);
                 const gap = lineWidthRef.current + GAP;
                 const leftStart = Math.round(XRenderStartRef.current - gap * (i + 1));
                 if (rects[i]) {
                     rects[i].set({
                         left: leftStart,
-                        top: Math.round(fabricCanvasRef.current.height - (item[1] - minPriceRef.current) * heightFactor),
+                        top: item[1] > item[4] ? (maxPriceRef.current - item[1]) * heightFactor : (maxPriceRef.current - item[4]) * heightFactor,
                         fill: item[1] > item[4] ? styleConfig.redColor : styleConfig.greenColor,
                         width: lineWidthRef.current,
-                        height: y,
+                        height: Math.abs(y),
                         visible: true,
                     })
                     rects[i].setCoords();
                 } else {
                     const rect = new fabric.Rect({
                         left: leftStart,
-                        top: Math.round(fabricCanvasRef.current.height - ((item[1] - minPriceRef.current) * heightFactor)),
+                        top: (maxPriceRef.current - item[1]) * heightFactor,
                         fill: item[1] > item[4] ? styleConfig.redColor : styleConfig.greenColor,
                         width: lineWidthRef.current,
                         height: y,
@@ -576,6 +576,7 @@ function Chart({ height, width }) {
                 maxPriceRef.current = maxPriceRef.current + cloestInterval;
                 minPriceRef.current = Math.max(minPriceRef.current - cloestInterval, 0);
                 drawChartData();
+
             } else {
                 maxPriceRef.current = Math.max(maxPriceRef.current - cloestInterval, minPriceRef.current + cloestInterval);
                 minPriceRef.current = Math.min(minPriceRef.current + cloestInterval, maxPriceRef.current - cloestInterval);
