@@ -34,6 +34,9 @@ function Chart({ height, width }) {
     const baseURL = 'https://www.okx.com'
     const canvasRef = useRef(null);
     const fabricCanvasRef = useRef(null);
+    const priceCanvasRef = useRef(null);
+    const fabricPriceCanvasRef = useRef(null);
+
     const [timeScale, setTimeScale] = useState('15m');
     const [priceMin, setPriceMin] = useState(0);
     const [priceMax, setPriceMax] = useState(0);
@@ -63,14 +66,28 @@ function Chart({ height, width }) {
     const instId = useContext(instContext);
 
     useEffect(() => {
-        const canvas = new fabric.Canvas(canvasRef.current);
-        console.log(`canvas initialized ${canvas}`);
-        fabricCanvasRef.current = canvas;
+        //初始化k-线画布
+        fabricCanvasRef.current = new fabric.Canvas(canvasRef.current);
         fabricCanvasRef.current.imageSmoothingEnabled = false;
+        //初始化价格画布（上层）
+        fabricPriceCanvasRef.current = new fabric.Canvas(priceCanvasRef.current);
+        fabricPriceCanvasRef.current.imageSmoothingEnabled = false;
+        fabricPriceCanvasRef.current.backgroundColor = 'white';
+        //设置价格画布container的样式
+        const container = fabricPriceCanvasRef.current.wrapperEl
+        container.style.position = 'absolute';
+        container.style.top = '0';
+        container.style.left = fabricCanvasRef.current.width - PRICE_HORI_MARGIN + 'px';
+        container.style.zIndex = '2';
+        //初始化k线画布container的样式
+        const lowerContainer = fabricCanvasRef.current.wrapperEl;
+        lowerContainer.style.position = 'absolute';
+        lowerContainer.style.top = '0';
+        lowerContainer.style.left = '0';
         return () => {
             fabricCanvasRef.current.dispose();
+            fabricPriceCanvasRef.current.dispose();
         };
-
     }, []);
 
     const fetchMoreData = useCallback(async () => {
@@ -84,7 +101,7 @@ function Chart({ height, width }) {
 
     const drawChartData = useCallback(() => {
         if (chartDataRef.current.length > 0) {
-            
+
             const rects = chartObjectsRef.current.rects;
             const wicks = chartObjectsRef.current.wicks;
             const heightFactor = (fabricCanvasRef.current.height - 2 * MIN_MAX_MARGIN - DATE_AXIS_HEIGHT) / (priceMax - priceMin);
@@ -147,18 +164,18 @@ function Chart({ height, width }) {
                     );
                     fabricCanvasRef.current.add(wick);
                     wicks.push(wick);
-                    
+
                 }
             }
             if (minPriceTagRef.current) {
                 minPriceTagRef.current.set({
                     text: (priceMin + YRenderOffsetRef.current * priceChangePerPixel).toFixed(1).toString(),
-                    left: fabricCanvasRef.current.width - PRICE_HORI_MARGIN + STROKE_WIDTH,
+                    left: 0,
                 })
                 minPriceTagRef.current.setCoords();
             } else {
                 const mintxt = new fabric.Text((priceMin + YRenderOffsetRef.current * priceChangePerPixel).toFixed(1).toString(), {
-                    left: fabricCanvasRef.current.width - PRICE_HORI_MARGIN + STROKE_WIDTH,
+                    left: 0,
                     top: fabricCanvasRef.current.height - MIN_MAX_MARGIN - DATE_AXIS_HEIGHT,
                     fontSize: 15,
                     selectable: false,
@@ -166,17 +183,17 @@ function Chart({ height, width }) {
                     originY: 'center',
                 })
                 minPriceTagRef.current = mintxt;
-                fabricCanvasRef.current.add(mintxt);
+                fabricPriceCanvasRef.current.add(mintxt);
             }
             if (maxPriceTagRef.current) {
                 maxPriceTagRef.current.set({
-                    left: fabricCanvasRef.current.width - PRICE_HORI_MARGIN + STROKE_WIDTH,
+                    left: 0,
                     text: (priceMax + YRenderOffsetRef.current * priceChangePerPixel).toFixed(1).toString(),
                 })
                 maxPriceTagRef.current.setCoords();
             } else {
                 const maxtxt = new fabric.Text((priceMax + YRenderOffsetRef.current * priceChangePerPixel).toFixed(1).toString(), {
-                    left: fabricCanvasRef.current.width - PRICE_HORI_MARGIN + STROKE_WIDTH,
+                    left: 0,
                     top: MIN_MAX_MARGIN,
                     fontSize: 15,
                     selectable: false,
@@ -184,7 +201,7 @@ function Chart({ height, width }) {
                     originY: 'center',
                 })
                 maxPriceTagRef.current = maxtxt;
-                fabricCanvasRef.current.add(maxtxt);
+                fabricPriceCanvasRef.current.add(maxtxt);
             }
 
             const priceY = (priceMax - chartDataRef.current[0][4]) * heightFactor + YRenderOffsetRef.current + MIN_MAX_MARGIN;
@@ -214,13 +231,13 @@ function Chart({ height, width }) {
                 priceTagRef.current.set({
                     top: priceY,
                     text: Number(chartDataRef.current[0][4]).toFixed(1).toString(),
-                    left: fabricCanvasRef.current.width - PRICE_HORI_MARGIN + STROKE_WIDTH,
+                    left: 0,
                 })
                 priceTagRef.current.setCoords();
             } else {
 
                 const priceTag = new fabric.Text(Number(chartDataRef.current[0][4]).toFixed(1).toString(), {
-                    left: fabricCanvasRef.current.width - PRICE_HORI_MARGIN + STROKE_WIDTH,
+                    left: 0,
                     top: priceY,
                     originY: 'center',
                     fontSize: 15,
@@ -230,9 +247,11 @@ function Chart({ height, width }) {
                     fill: 'white',
                 })
                 priceTagRef.current = priceTag;
-                fabricCanvasRef.current.add(priceTag);
+                fabricPriceCanvasRef.current.add(priceTag);
             }
             fabricCanvasRef.current.renderAll();
+            fabricPriceCanvasRef.current.renderAll();
+            
         }
     }, [priceMax, priceMin, fetchMoreData]);
 
@@ -240,8 +259,28 @@ function Chart({ height, width }) {
         fabricCanvasRef.current.setHeight(height);
         fabricCanvasRef.current.selection = false;
         fabricCanvasRef.current.setWidth(Math.max(width, 100));
+
+        fabricPriceCanvasRef.current.setHeight(height);
+        fabricPriceCanvasRef.current.setWidth(PRICE_HORI_MARGIN);
+        fabricPriceCanvasRef.current.selection = false;
+        const container = fabricPriceCanvasRef.current.wrapperEl
+        container.style.position = 'absolute';
+        container.style.left = fabricCanvasRef.current.width - PRICE_HORI_MARGIN + 'px';
+
+        const rect = new fabric.Rect({
+            left: width - PRICE_HORI_MARGIN,
+            top: 0,
+            width: PRICE_HORI_MARGIN,
+            height: height,
+            fill: 'white',
+        });
+        fabricPriceCanvasRef.current.add(rect);
         if (chartDataRef.current.length > 0) {
             drawChartData()
+        }
+
+        return () => {
+            fabricPriceCanvasRef.current.remove(rect)
         }
     }, [height, width, drawChartData]);
 
@@ -301,132 +340,132 @@ function Chart({ height, width }) {
 
     useEffect(() => {
 
-            const handleMouseMove = (event) => {
-                const pointer = fabricCanvasRef.current.getPointer(event.e);
-                const posY = pointer.y;
-                let posX = Math.min(pointer.x, fabricCanvasRef.current.width - PRICE_HORI_MARGIN);
-                const numOfKLineInBetween = Math.floor((posX - XRenderStartRef.current) / (lineWidthRef.current + GAP));
-                posX = XRenderStartRef.current + lineWidthRef.current / 2 + numOfKLineInBetween * (lineWidthRef.current + GAP);
-                const tempDate = new Date(lastDateTimeRef.current + (numOfKLineInBetween + 1) * timeScaleToMiliseconds[timeScale]);
-                const displayDateString = tempDate.toLocaleDateString() + ' ' + tempDate.toLocaleTimeString();
-                if (horiLineRef.current) {
-                    horiLineRef.current.set({
-                        y1: posY,
-                        y2: posY,
-                    })
-                    horiLineRef.current.setCoords();
-                } else {
-                    const newHoriLine = new fabric.Line(
-                        [STROKE_WIDTH, posY, fabricCanvasRef.current.width - STROKE_WIDTH - PRICE_HORI_MARGIN, posY],
-                        {
-                            stroke: 'black',
-                            strokeWidth: 1,
-                            strokeDashArray: [5, 5],
-                            selectable: false,
-                            needRemove: false,
-                            hoverCursor: 'default',
-                        }
-                    );
-                    horiLineRef.current = newHoriLine;
-                    fabricCanvasRef.current.add(horiLineRef.current);
-                }
-                if (vertiLineRef.current) {
-                    vertiLineRef.current.set({
-                        x1: posX,
-                        x2: posX,
-                    })
-                    vertiLineRef.current.setCoords();
-                } else {
-                    const newVertiLine = new fabric.Line(
-                        [posX, STROKE_WIDTH, posX, fabricCanvasRef.current.height - STROKE_WIDTH - DATE_AXIS_HEIGHT],
-                        {
-                            stroke: 'black',
-                            strokeWidth: 1,
-                            strokeDashArray: [5, 5],
-                            selectable: false,
-                            needRemove: false,
-                            hoverCursor: 'default',
-                        }
-                    )
-                    vertiLineRef.current = newVertiLine;
-                    fabricCanvasRef.current.add(newVertiLine);
-                }
-
-                if (datetextRef.current) {
-                    datetextRef.current.set({
-                        left: posX,
-                        text: displayDateString,
-                    })
-                    datetextRef.current.setCoords();
-                } else {
-                    const newDatetext = new fabric.Text(
-                        displayDateString, {
-                        left: posX,
-                        top: fabricCanvasRef.current.height - DATE_AXIS_HEIGHT - 2,
-                        originX: 'center',
-                        fontSize: 20,
-                        backgroundColor: 'black',
-                        fill: 'white',
-                    });
-                    datetextRef.current = newDatetext;
-                    fabricCanvasRef.current.add(newDatetext);
-                }
-                fabricCanvasRef.current.renderAll();
+        const handleMouseMove = (event) => {
+            const pointer = fabricCanvasRef.current.getPointer(event.e);
+            const posY = pointer.y;
+            let posX = Math.min(pointer.x, fabricCanvasRef.current.width - PRICE_HORI_MARGIN);
+            const numOfKLineInBetween = Math.floor((posX - XRenderStartRef.current) / (lineWidthRef.current + GAP));
+            posX = XRenderStartRef.current + lineWidthRef.current / 2 + numOfKLineInBetween * (lineWidthRef.current + GAP);
+            const tempDate = new Date(lastDateTimeRef.current + (numOfKLineInBetween + 1) * timeScaleToMiliseconds[timeScale]);
+            const displayDateString = tempDate.toLocaleDateString() + ' ' + tempDate.toLocaleTimeString();
+            if (horiLineRef.current) {
+                horiLineRef.current.set({
+                    y1: posY,
+                    y2: posY,
+                })
+                horiLineRef.current.setCoords();
+            } else {
+                const newHoriLine = new fabric.Line(
+                    [STROKE_WIDTH, posY, fabricCanvasRef.current.width - STROKE_WIDTH - PRICE_HORI_MARGIN, posY],
+                    {
+                        stroke: 'black',
+                        strokeWidth: 1,
+                        strokeDashArray: [5, 5],
+                        selectable: false,
+                        needRemove: false,
+                        hoverCursor: 'default',
+                    }
+                );
+                horiLineRef.current = newHoriLine;
+                fabricCanvasRef.current.add(horiLineRef.current);
             }
-            const throttledHandleMouseMove = throttle(handleMouseMove, 10);
-            const throttledDrawChartData = throttle(drawChartData, 20);
+            if (vertiLineRef.current) {
+                vertiLineRef.current.set({
+                    x1: posX,
+                    x2: posX,
+                })
+                vertiLineRef.current.setCoords();
+            } else {
+                const newVertiLine = new fabric.Line(
+                    [posX, STROKE_WIDTH, posX, fabricCanvasRef.current.height - STROKE_WIDTH - DATE_AXIS_HEIGHT],
+                    {
+                        stroke: 'black',
+                        strokeWidth: 1,
+                        strokeDashArray: [5, 5],
+                        selectable: false,
+                        needRemove: false,
+                        hoverCursor: 'default',
+                    }
+                )
+                vertiLineRef.current = newVertiLine;
+                fabricCanvasRef.current.add(newVertiLine);
+            }
 
-            fabricCanvasRef.current.on('mouse:move', function (event) {
-                handleMouseMove(event)
-            });
-
-            fabricCanvasRef.current.on('mouse:out', function () {
-                fabricCanvasRef.current.remove(horiLineRef.current);
-                fabricCanvasRef.current.remove(vertiLineRef.current);
-                fabricCanvasRef.current.remove(datetextRef.current);
-                horiLineRef.current = null;
-                vertiLineRef.current = null
-                datetextRef.current = null;
-            });
-
-
-            fabricCanvasRef.current.on('mouse:down', function (event) {
-                const initialMouseX = event.e.clientX;
-                const initialMouseY = event.e.clientY;
-                let initXRenderStart = XRenderStartRef.current;
-                let initYRenderOffset = YRenderOffsetRef.current;
-                fabricCanvasRef.current.defaultCursor = 'grabbing';
-                fabricCanvasRef.current.hoverCursor = 'grabbing';
-                fabricCanvasRef.current.off('mouse:move');
-                fabricCanvasRef.current.on('mouse:move', function (event) {
-                    throttledHandleMouseMove(event);
-                    const movementX = event.e.clientX - initialMouseX
-                    const movementY = event.e.clientY - initialMouseY;
-                    //console.log(movementX);
-                    XRenderStartRef.current = initXRenderStart + movementX;
-                    YRenderOffsetRef.current = initYRenderOffset + movementY;
-                    throttledDrawChartData();
+            if (datetextRef.current) {
+                datetextRef.current.set({
+                    left: posX,
+                    text: displayDateString,
+                })
+                datetextRef.current.setCoords();
+            } else {
+                const newDatetext = new fabric.Text(
+                    displayDateString, {
+                    left: posX,
+                    top: fabricCanvasRef.current.height - DATE_AXIS_HEIGHT - 2,
+                    originX: 'center',
+                    fontSize: 20,
+                    backgroundColor: 'black',
+                    fill: 'white',
                 });
-            });
+                datetextRef.current = newDatetext;
+                fabricCanvasRef.current.add(newDatetext);
+            }
+            fabricCanvasRef.current.renderAll();
+        }
+        const throttledHandleMouseMove = throttle(handleMouseMove, 10);
+        const throttledDrawChartData = throttle(drawChartData, 20);
 
-            fabricCanvasRef.current.on('mouse:up', function () {
-                fabricCanvasRef.current.defaultCursor = 'default';
-                fabricCanvasRef.current.hoverCursor = 'default';
-                fabricCanvasRef.current.off('mouse:move');
-                fabricCanvasRef.current.on('mouse:move', (event) => throttledHandleMouseMove(event));
-            });
+        fabricCanvasRef.current.on('mouse:move', function (event) {
+            handleMouseMove(event)
+        });
 
-            fabricCanvasRef.current.on('mouse:wheel', function (event) {
-                event.e.preventDefault();
-                if (event.e.deltaY > 0) {
-                    lineWidthRef.current = Math.max(lineWidthRef.current - 1, 2);
-                    throttledDrawChartData();                    
-                } else {
-                    lineWidthRef.current = Math.min(lineWidthRef.current + 1, 20);
-                    throttledDrawChartData();
-                }
+        fabricCanvasRef.current.on('mouse:out', function () {
+            fabricCanvasRef.current.remove(horiLineRef.current);
+            fabricCanvasRef.current.remove(vertiLineRef.current);
+            fabricCanvasRef.current.remove(datetextRef.current);
+            horiLineRef.current = null;
+            vertiLineRef.current = null
+            datetextRef.current = null;
+        });
+
+
+        fabricCanvasRef.current.on('mouse:down', function (event) {
+            const initialMouseX = event.e.clientX;
+            const initialMouseY = event.e.clientY;
+            let initXRenderStart = XRenderStartRef.current;
+            let initYRenderOffset = YRenderOffsetRef.current;
+            fabricCanvasRef.current.defaultCursor = 'grabbing';
+            fabricCanvasRef.current.hoverCursor = 'grabbing';
+            fabricCanvasRef.current.off('mouse:move');
+            fabricCanvasRef.current.on('mouse:move', function (event) {
+                throttledHandleMouseMove(event);
+                const movementX = event.e.clientX - initialMouseX
+                const movementY = event.e.clientY - initialMouseY;
+                //console.log(movementX);
+                XRenderStartRef.current = initXRenderStart + movementX;
+                YRenderOffsetRef.current = initYRenderOffset + movementY;
+                throttledDrawChartData();
             });
-        }, [timeScale, instId, drawChartData])
+        });
+
+        fabricCanvasRef.current.on('mouse:up', function () {
+            fabricCanvasRef.current.defaultCursor = 'default';
+            fabricCanvasRef.current.hoverCursor = 'default';
+            fabricCanvasRef.current.off('mouse:move');
+            fabricCanvasRef.current.on('mouse:move', (event) => throttledHandleMouseMove(event));
+        });
+
+        fabricCanvasRef.current.on('mouse:wheel', function (event) {
+            event.e.preventDefault();
+            if (event.e.deltaY > 0) {
+                lineWidthRef.current = Math.max(lineWidthRef.current - 1, 2);
+                throttledDrawChartData();
+            } else {
+                lineWidthRef.current = Math.min(lineWidthRef.current + 1, 20);
+                throttledDrawChartData();
+            }
+        });
+    }, [timeScale, instId, drawChartData])
 
     const timeScaleButtons = timeScaleSelect.map((item) => {
         return (
@@ -438,7 +477,10 @@ function Chart({ height, width }) {
 
     return (
         <div className="chart">
-            <canvas ref={canvasRef} className="inner-canvas" />
+            <div className="canvas-wrapper">
+                <canvas ref={canvasRef} className="inner-canvas" />
+                <canvas ref={priceCanvasRef} className="price-canvas" />
+            </div>
             <div className="time-scale-wrapper">
                 {timeScaleButtons}
             </div>

@@ -14,3 +14,11 @@
     color: white;
 }
 
+.canvas-wrapper {
+    position: relative;
+    height: 700px;
+}
+
+.chart {
+    width: 100%
+}
