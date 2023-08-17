@@ -3,11 +3,12 @@ import { fabric } from 'fabric';
 import { instContext } from './appContext';
 import './Chart.css';
 import { throttle } from 'lodash'
-const MIN_MAX_MARGIN = 20;
+const MIN_MAX_MARGIN = 50;
 const PRICE_HORI_MARGIN = 53;
 const STROKE_WIDTH = 1;
 const DATE_AXIS_HEIGHT = 20;
 const GAP = 3;
+
 
 const timeScaleSelect = ['1m', '5m', '15m', '30m', '1H', '2H', '4H', '12H', '1D']
 const timeScaleToMiliseconds = {
@@ -22,12 +23,43 @@ const timeScaleToMiliseconds = {
     '1D': 24 * 60 * 60 * 1000,
 }
 
+//given a number, return the cloest number of the patter 1/2/5*10Ex x can be any integer number
+function closestMultipleOf125(num) {
+    const logValue = Math.log10(num);
+    const intPart = Math.floor(logValue);
+    const decimalValue = Math.pow(10, logValue - intPart);
+
+    let base;
+
+    if (decimalValue < 1.5) {
+        base = 1;
+    } else if (decimalValue < 3.5) {
+        base = 2;
+    } else {
+        base = 5;
+    }
+
+    return base * Math.pow(10, intPart);
+}
+
 const styleConfig = {
     backgroundStrockColor: 'rgb(183, 183, 183)',
     redColor: 'red',
     greenColor: 'rgb(3, 179, 3)',
 }
 
+// const nextMultipleOf10 = function(num) {
+//     switch(true) {
+//         case(num < 0.000001): return 0.000001;
+//         case(num < 0.00001): return 0.00001;
+//         case(num < 0.0001): return 0.0001;
+//         case(num < 0.001): return 0.001;
+//         case(num < 0.01): return 0.01;
+//         case(num < 0.1): return 0.1;
+//         case(num < 1): return 1;
+//         default: return Math.ceil(value/10) * 10
+//     }
+// }
 
 // eslint-disable-next-line react/prop-types
 function Chart({ height, width }) {
@@ -38,14 +70,17 @@ function Chart({ height, width }) {
     const fabricPriceCanvasRef = useRef(null);
 
     const [timeScale, setTimeScale] = useState('15m');
-    const [priceMin, setPriceMin] = useState(0);
-    const [priceMax, setPriceMax] = useState(0);
+
+    const maxPriceRef = useRef(0);
+    const minPriceRef = useRef(0);
 
     const horiLineRef = useRef(null);
     const vertiLineRef = useRef(null);
     const priceTagRef = useRef(null);
     const minPriceTagRef = useRef(null);
     const maxPriceTagRef = useRef(null);
+    const horiGridRef = useRef([]);
+
 
     const XRenderStartRef = useRef(Math.round(width - PRICE_HORI_MARGIN - STROKE_WIDTH - 15));
     const YRenderOffsetRef = useRef(0);
@@ -91,24 +126,59 @@ function Chart({ height, width }) {
     }, []);
 
     const fetchMoreData = useCallback(async () => {
-        const response = await fetch(`${baseURL}/api/v5/market/candles?instId=${instId}&bar=${timeScale}&after=${chartDataRef.current[chartDataRef.current.length - 1][0] - 1}&limit=100`);
-        const data = await response.json();
-        console.log('fetching more data')
-        if (chartDataRef.current[chartDataRef.current.length - 1][0] - data.data[0][0] == timeScaleToMiliseconds[timeScale]) {
-            chartDataRef.current = [...chartDataRef.current, ...data.data]
+        try {
+            const response = await fetch(`${baseURL}/api/v5/market/candles?instId=${instId}&bar=${timeScale}&after=${chartDataRef.current[chartDataRef.current.length - 1][0] - 1}&limit=100`);
+            const data = await response.json();
+            console.log('fetching more data')
+            if (data.data && chartDataRef.current[chartDataRef.current.length - 1][0] - data.data[0][0] == timeScaleToMiliseconds[timeScale]) {
+                chartDataRef.current = [...chartDataRef.current, ...data.data]
+            }
+        } catch (error) {
+            console.log(error);
         }
     }, [timeScale, instId])
 
+
+
     const drawChartData = useCallback(() => {
         if (chartDataRef.current.length > 0) {
-
             const rects = chartObjectsRef.current.rects;
             const wicks = chartObjectsRef.current.wicks;
-            const heightFactor = (fabricCanvasRef.current.height - 2 * MIN_MAX_MARGIN - DATE_AXIS_HEIGHT) / (priceMax - priceMin);
-            const priceChangePerPixel = (priceMax - priceMin) / (fabricCanvasRef.current.height - 2 * MIN_MAX_MARGIN - DATE_AXIS_HEIGHT);
-
+            const heightFactor = (fabricCanvasRef.current.height - 2 * MIN_MAX_MARGIN - DATE_AXIS_HEIGHT) / (maxPriceRef.current - minPriceRef.current);
+            const priceChangePerPixel = (maxPriceRef.current - minPriceRef.current) / (fabricCanvasRef.current.height - 2 * MIN_MAX_MARGIN - DATE_AXIS_HEIGHT);
+            const throttledFetchMoreData = throttle(fetchMoreData, 1500);
             if (chartDataRef.current.length < 1440 && XRenderStartRef.current - lineWidthRef.current * chartDataRef.current.length > 0) {
-                fetchMoreData();
+                throttledFetchMoreData();
+            }
+            const priceOf100pxs = priceChangePerPixel * 100;
+            const cloestInterval = closestMultipleOf125(priceOf100pxs);
+            const numOfLines = fabricCanvasRef.current.height / 100;
+            const hiPrice = maxPriceRef.current + priceChangePerPixel * MIN_MAX_MARGIN;
+            const top = hiPrice % cloestInterval * heightFactor
+            for (let i = 0; i < numOfLines; i++) {
+                let yPos = top + i * cloestInterval * heightFactor
+                if (horiGridRef.current[i]) {
+                    
+                    horiGridRef.current[i].set({
+                        y1: yPos,
+                        y2: yPos,
+                        x1: 0,
+                        x2: fabricCanvasRef.current.width,
+                    })
+                    horiGridRef.current[i].setCoords();
+                } else {
+                    const newHoriLine = new fabric.Line(
+                        [0, yPos, fabricCanvasRef.current.width, yPos],
+                        {
+                            stroke: styleConfig.backgroundStrockColor,
+                            strokeWidth: 1,
+                            selectable: false,
+                            hoverCursor: 'default',
+                        }
+                    );
+                    fabricCanvasRef.current.add(newHoriLine);
+                    horiGridRef.current.push(newHoriLine);
+                }
             }
             for (let i = 0; i < chartDataRef.current.length; i++) {
                 const item = chartDataRef.current[i];
@@ -118,7 +188,7 @@ function Chart({ height, width }) {
                 if (rects[i]) {
                     rects[i].set({
                         left: leftStart,
-                        top: Math.round(fabricCanvasRef.current.height - (DATE_AXIS_HEIGHT + MIN_MAX_MARGIN + (item[1] - priceMin) * heightFactor) + YRenderOffsetRef.current),
+                        top: Math.round(fabricCanvasRef.current.height - (DATE_AXIS_HEIGHT + MIN_MAX_MARGIN + (item[1] - minPriceRef.current) * heightFactor) + YRenderOffsetRef.current),
                         fill: item[1] > item[4] ? styleConfig.redColor : styleConfig.greenColor,
                         width: lineWidthRef.current,
                         height: y,
@@ -127,7 +197,7 @@ function Chart({ height, width }) {
                 } else {
                     const rect = new fabric.Rect({
                         left: leftStart,
-                        top: Math.round(fabricCanvasRef.current.height - (DATE_AXIS_HEIGHT + MIN_MAX_MARGIN + (item[1] - priceMin) * heightFactor) + YRenderOffsetRef.current),
+                        top: Math.round(fabricCanvasRef.current.height - (DATE_AXIS_HEIGHT + MIN_MAX_MARGIN + (item[1] - minPriceRef.current) * heightFactor) + YRenderOffsetRef.current),
                         fill: item[1] > item[4] ? styleConfig.redColor : styleConfig.greenColor,
                         width: lineWidthRef.current,
                         height: y,
@@ -141,9 +211,9 @@ function Chart({ height, width }) {
                 if (wicks[i]) {
                     wicks[i].set({
                         x1: leftStart + lineWidthRef.current / 2,
-                        y1: fabricCanvasRef.current.height - (DATE_AXIS_HEIGHT + MIN_MAX_MARGIN + (item[2] - priceMin) * heightFactor) + YRenderOffsetRef.current,
+                        y1: fabricCanvasRef.current.height - (DATE_AXIS_HEIGHT + MIN_MAX_MARGIN + (item[2] - minPriceRef.current) * heightFactor) + YRenderOffsetRef.current,
                         x2: leftStart + lineWidthRef.current / 2,
-                        y2: fabricCanvasRef.current.height - (DATE_AXIS_HEIGHT + MIN_MAX_MARGIN + (item[3] - priceMin) * heightFactor) + YRenderOffsetRef.current,
+                        y2: fabricCanvasRef.current.height - (DATE_AXIS_HEIGHT + MIN_MAX_MARGIN + (item[3] - minPriceRef.current) * heightFactor) + YRenderOffsetRef.current,
                         stroke: wickColor,
                     })
                     wicks[i].setCoords();
@@ -151,9 +221,9 @@ function Chart({ height, width }) {
                     const wick = new fabric.Line(
                         [
                             leftStart + lineWidthRef.current / 2,
-                            fabricCanvasRef.current.height - (DATE_AXIS_HEIGHT + MIN_MAX_MARGIN + (item[2] - priceMin) * heightFactor) + YRenderOffsetRef.current,
+                            fabricCanvasRef.current.height - (DATE_AXIS_HEIGHT + MIN_MAX_MARGIN + (item[2] - minPriceRef.current) * heightFactor) + YRenderOffsetRef.current,
                             leftStart + lineWidthRef.current / 2,
-                            fabricCanvasRef.current.height - (DATE_AXIS_HEIGHT + MIN_MAX_MARGIN + (item[3] - priceMin) * heightFactor) + YRenderOffsetRef.current,
+                            fabricCanvasRef.current.height - (DATE_AXIS_HEIGHT + MIN_MAX_MARGIN + (item[3] - minPriceRef.current) * heightFactor) + YRenderOffsetRef.current,
                         ],
                         {
                             stroke: wickColor,
@@ -167,16 +237,17 @@ function Chart({ height, width }) {
 
                 }
             }
+
             if (minPriceTagRef.current) {
                 minPriceTagRef.current.set({
-                    text: (priceMin + YRenderOffsetRef.current * priceChangePerPixel).toFixed(1).toString(),
+                    text: (minPriceRef.current).toFixed(1).toString(),
                     left: 0,
                 })
                 minPriceTagRef.current.setCoords();
             } else {
-                const mintxt = new fabric.Text((priceMin + YRenderOffsetRef.current * priceChangePerPixel).toFixed(1).toString(), {
+                const mintxt = new fabric.Text((minPriceRef.current + YRenderOffsetRef.current * priceChangePerPixel).toFixed(1).toString(), {
                     left: 0,
-                    top: fabricCanvasRef.current.height - MIN_MAX_MARGIN - DATE_AXIS_HEIGHT,
+                    top: fabricCanvasRef.current.height - MIN_MAX_MARGIN,
                     fontSize: 15,
                     selectable: false,
                     hoverCursor: 'default',
@@ -185,14 +256,15 @@ function Chart({ height, width }) {
                 minPriceTagRef.current = mintxt;
                 fabricPriceCanvasRef.current.add(mintxt);
             }
+
             if (maxPriceTagRef.current) {
                 maxPriceTagRef.current.set({
                     left: 0,
-                    text: (priceMax + YRenderOffsetRef.current * priceChangePerPixel).toFixed(1).toString(),
+                    text: (maxPriceRef.current).toFixed(1).toString(),
                 })
                 maxPriceTagRef.current.setCoords();
             } else {
-                const maxtxt = new fabric.Text((priceMax + YRenderOffsetRef.current * priceChangePerPixel).toFixed(1).toString(), {
+                const maxtxt = new fabric.Text((maxPriceRef.current + YRenderOffsetRef.current * priceChangePerPixel).toFixed(1).toString(), {
                     left: 0,
                     top: MIN_MAX_MARGIN,
                     fontSize: 15,
@@ -204,7 +276,10 @@ function Chart({ height, width }) {
                 fabricPriceCanvasRef.current.add(maxtxt);
             }
 
-            const priceY = (priceMax - chartDataRef.current[0][4]) * heightFactor + YRenderOffsetRef.current + MIN_MAX_MARGIN;
+            //使得gridLine之间的间距大于100px
+
+
+            const priceY = (maxPriceRef.current - chartDataRef.current[0][4]) * heightFactor + YRenderOffsetRef.current + MIN_MAX_MARGIN;
             if (priceLineRef.current) {
                 priceLineRef.current.set({
                     y1: priceY,
@@ -221,7 +296,6 @@ function Chart({ height, width }) {
                         strokeDashArray: [5, 5],
                         selectable: false,
                         hoverCursor: 'default',
-
                     }
                 )
                 priceLineRef.current = priceLine;
@@ -235,7 +309,6 @@ function Chart({ height, width }) {
                 })
                 priceTagRef.current.setCoords();
             } else {
-
                 const priceTag = new fabric.Text(Number(chartDataRef.current[0][4]).toFixed(1).toString(), {
                     left: 0,
                     top: priceY,
@@ -251,9 +324,8 @@ function Chart({ height, width }) {
             }
             fabricCanvasRef.current.renderAll();
             fabricPriceCanvasRef.current.renderAll();
-            
         }
-    }, [priceMax, priceMin, fetchMoreData]);
+    }, [fetchMoreData]);
 
     useEffect(() => {
         fabricCanvasRef.current.setHeight(height);
@@ -315,10 +387,8 @@ function Chart({ height, width }) {
                 }
 
                 if (calcMinAndMax) {
-                    const maxVal = Math.max(...data.data.map(item => item[2]));
-                    const minVal = Math.min(...data.data.map(item => item[3]));
-                    setPriceMax(maxVal);
-                    setPriceMin(minVal);
+                    maxPriceRef.current = Math.max(...data.data.map(item => item[2]));
+                    minPriceRef.current = Math.min(...data.data.map(item => item[3]));
                 }
                 drawChartData()
             } catch (error) {
@@ -335,8 +405,8 @@ function Chart({ height, width }) {
 
 
     useEffect(() => {
-        XRenderStartRef.current = width - PRICE_HORI_MARGIN - STROKE_WIDTH;
-    }, [timeScale, instId, width])
+        XRenderStartRef.current = fabricCanvasRef.current.width - PRICE_HORI_MARGIN - STROKE_WIDTH;
+    }, [timeScale, instId])
 
     useEffect(() => {
 
@@ -434,6 +504,9 @@ function Chart({ height, width }) {
             const initialMouseY = event.e.clientY;
             let initXRenderStart = XRenderStartRef.current;
             let initYRenderOffset = YRenderOffsetRef.current;
+            let initminPrice = minPriceRef.current;
+            let initmaxPrice = maxPriceRef.current;
+            const priceChangePerPixel = (maxPriceRef.current - minPriceRef.current) / (fabricCanvasRef.current.height - 2 * MIN_MAX_MARGIN - DATE_AXIS_HEIGHT);
             fabricCanvasRef.current.defaultCursor = 'grabbing';
             fabricCanvasRef.current.hoverCursor = 'grabbing';
             fabricCanvasRef.current.off('mouse:move');
@@ -444,6 +517,8 @@ function Chart({ height, width }) {
                 //console.log(movementX);
                 XRenderStartRef.current = initXRenderStart + movementX;
                 YRenderOffsetRef.current = initYRenderOffset + movementY;
+                minPriceRef.current = initminPrice + movementY * priceChangePerPixel;
+                maxPriceRef.current = initmaxPrice + movementY * priceChangePerPixel;
                 throttledDrawChartData();
             });
         });
@@ -458,10 +533,10 @@ function Chart({ height, width }) {
         fabricCanvasRef.current.on('mouse:wheel', function (event) {
             event.e.preventDefault();
             if (event.e.deltaY > 0) {
-                lineWidthRef.current = Math.max(lineWidthRef.current - 1, 2);
+                lineWidthRef.current = Math.max(lineWidthRef.current - 0.5, 2);
                 throttledDrawChartData();
             } else {
-                lineWidthRef.current = Math.min(lineWidthRef.current + 1, 20);
+                lineWidthRef.current = Math.min(lineWidthRef.current + 0.5, 20);
                 throttledDrawChartData();
             }
         });
