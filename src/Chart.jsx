@@ -45,19 +45,6 @@ const styleConfig = {
     greenColor: 'rgb(3, 179, 3)',
 }
 
-// const nextMultipleOf10 = function(num) {
-//     switch(true) {
-//         case(num < 0.000001): return 0.000001;
-//         case(num < 0.00001): return 0.00001;
-//         case(num < 0.0001): return 0.0001;
-//         case(num < 0.001): return 0.001;
-//         case(num < 0.01): return 0.01;
-//         case(num < 0.1): return 0.1;
-//         case(num < 1): return 1;
-//         default: return Math.ceil(value/10) * 10
-//     }
-// }
-
 // eslint-disable-next-line react/prop-types
 function Chart({ height, width }) {
     const baseURL = 'https://www.okx.com'
@@ -80,7 +67,7 @@ function Chart({ height, width }) {
     
 
     const XRenderStartRef = useRef(Math.round(width - PRICE_HORI_MARGIN - 15));
-
+    const lastRenderRange = useRef([]);
     const lastDateTimeRef = useRef(null);
     const datetextRef = useRef(null);
     const lineWidthRef = useRef(10);
@@ -134,8 +121,6 @@ function Chart({ height, width }) {
             console.log(error);
         }
     }, [timeScale, instId])
-
-
 
     const drawChartData = useCallback(() => {
         if (chartDataRef.current.length > 0) {
@@ -208,10 +193,23 @@ function Chart({ height, width }) {
                     horiLineGridTag.current.push(newhoriLineGridTag);
                 }
             }
-            for (let i = 0; i < chartDataRef.current.length; i++) {
+            if (lastRenderRange.current.length == 2) {
+                for (let i = lastRenderRange.current[0]; i <= Math.min(lastRenderRange.current[1], chartDataRef.current.length - 1); i++) {
+                    if (rects[i]) rects[i].set({
+                        visible: false,
+                    })
+                    if (wicks[i]) wicks[i].set({
+                        visible: false,
+                    })
+                }
+            }
+            const rangeStart = Math.max(Math.floor((XRenderStartRef.current - fabricCanvasRef.current.width) / (lineWidthRef.current + GAP)), 0);
+            const rangeEnd = Math.max(Math.floor((XRenderStartRef.current - lineWidthRef.current) / (lineWidthRef.current + GAP)), 0);
+            lastRenderRange.current = [rangeStart, rangeEnd];
+            for (let i = rangeStart; i <= Math.min(chartDataRef.current.length - 1, rangeEnd) ; i++) {
                 const item = chartDataRef.current[i];
                 const y = Math.abs(heightFactor * (item[1] - item[4])) < 1 ? 1 : Math.round(heightFactor * (item[1] - item[4]));
-                const gap = lineWidthRef.current + 3;
+                const gap = lineWidthRef.current + GAP;
                 const leftStart = Math.round(XRenderStartRef.current - gap * (i + 1));
                 if (rects[i]) {
                     rects[i].set({
@@ -220,6 +218,7 @@ function Chart({ height, width }) {
                         fill: item[1] > item[4] ? styleConfig.redColor : styleConfig.greenColor,
                         width: lineWidthRef.current,
                         height: y,
+                        visible: true,
                     })
                     rects[i].setCoords();
                 } else {
@@ -231,6 +230,7 @@ function Chart({ height, width }) {
                         height: y,
                         selectable: false,
                         hoverCursor: 'default',
+                        visible: true,
                     })
                     fabricCanvasRef.current.add(rect);
                     rects.push(rect);
@@ -243,6 +243,7 @@ function Chart({ height, width }) {
                         x2: leftStart + lineWidthRef.current / 2,
                         y2: fabricCanvasRef.current.height - ((item[3] - minPriceRef.current) * heightFactor),
                         stroke: wickColor,
+                        visible: true,
                     })
                     wicks[i].setCoords();
                 } else {
@@ -255,10 +256,10 @@ function Chart({ height, width }) {
                         ],
                         {
                             stroke: wickColor,
-                            strokeWidth: 2,
+                            strokeWidth: 1,
                             selectable: false,
                             hoverCursor: 'default',
-                            
+                            visible: true,
                         }
                     );
                     fabricCanvasRef.current.add(wick);
@@ -340,8 +341,24 @@ function Chart({ height, width }) {
         }
     }, [height, width, drawChartData]);
 
-
-
+    useEffect(() => {
+        XRenderStartRef.current = fabricCanvasRef.current.width - PRICE_HORI_MARGIN
+        if (lastRenderRange.current.length == 2) {
+            let rects = chartObjectsRef.current.rects;
+            let wicks = chartObjectsRef.current.wicks;
+            if (lastRenderRange.current.length == 2) {
+                for (let i = lastRenderRange.current[0]; i <= Math.min(lastRenderRange.current[1], chartDataRef.current.length - 1); i++) {
+                    rects[i].set({
+                        visible: false,
+                    })
+                    wicks[i].set({
+                        visible: false,
+                    })
+                }
+            }
+            fabricCanvasRef.current.renderAll();
+        }
+    }, [timeScale, instId, drawChartData])
 
     //响应时间刻度的变化
     useEffect(() => {
@@ -368,19 +385,22 @@ function Chart({ height, width }) {
                             chartDataRef.current = updatedData;
                         }
                     }
-                }
-
+                    
+                
                 if (calcMinAndMax) {
                     maxPriceRef.current = Math.max(...data.data.map(item => item[2]));
                     minPriceRef.current = Math.min(...data.data.map(item => item[3]));
                 }
                 drawChartData()
+            }
+                
             } catch (error) {
                 console.log(error);
             }
         }
         fetchKLineData(true, 200, true);
         const intervalId = setInterval(() => fetchKLineData(false), 300);
+
         return () => {
             clearInterval(intervalId);
             ignore = true;
@@ -388,9 +408,7 @@ function Chart({ height, width }) {
     }, [timeScale, instId, drawChartData])
 
 
-    useEffect(() => {
-        XRenderStartRef.current = fabricCanvasRef.current.width - PRICE_HORI_MARGIN
-    }, [timeScale, instId])
+
 
     useEffect(() => {
 
@@ -500,9 +518,11 @@ function Chart({ height, width }) {
             fabricCanvasRef.current.remove(horiLineRef.current);
             fabricCanvasRef.current.remove(vertiLineRef.current);
             fabricCanvasRef.current.remove(datetextRef.current);
+            fabricPriceCanvasRef.current.remove(horiLinePriceTag.current);
             horiLineRef.current = null;
             vertiLineRef.current = null
             datetextRef.current = null;
+            horiLinePriceTag.current = null;
         });
 
 
@@ -537,14 +557,38 @@ function Chart({ height, width }) {
 
         fabricCanvasRef.current.on('mouse:wheel', function (event) {
             event.e.preventDefault();
+            console.log('wheel')
             if (event.e.deltaY > 0) {
-                lineWidthRef.current = Math.max(lineWidthRef.current - 0.5, 5);
-                throttledDrawChartData();
+                lineWidthRef.current = Math.max(lineWidthRef.current - 2, 2);
+                drawChartData();
             } else {
-                lineWidthRef.current = Math.min(lineWidthRef.current + 0.5, 20);
-                throttledDrawChartData();
+                lineWidthRef.current = Math.min(lineWidthRef.current + 2, 20);
+                drawChartData();
             }
         });
+
+        fabricPriceCanvasRef.current.on('mouse:wheel', function (event) {
+            event.e.preventDefault();
+            const priceChangePerPixel = (maxPriceRef.current - minPriceRef.current) / (fabricCanvasRef.current.height);
+            const priceOf100pxs = priceChangePerPixel * 100;
+            const cloestInterval = closestMultipleOf125(priceOf100pxs);
+            if (event.e.deltaY < 0) {
+                maxPriceRef.current = maxPriceRef.current + cloestInterval;
+                minPriceRef.current = Math.max(minPriceRef.current - cloestInterval, 0);
+                drawChartData();
+            } else {
+                maxPriceRef.current = Math.max(maxPriceRef.current - cloestInterval, minPriceRef.current + cloestInterval);
+                minPriceRef.current = Math.min(minPriceRef.current + cloestInterval, maxPriceRef.current - cloestInterval);
+                drawChartData();
+            }
+        });
+        return () => {
+            fabricCanvasRef.current.off('mouse:move');
+            fabricCanvasRef.current.off('mouse:down');
+            fabricCanvasRef.current.off('mouse:up');
+            fabricCanvasRef.current.off('mouse:wheel');
+            fabricPriceCanvasRef.current.off('mouse:wheel')
+        }
     }, [timeScale, instId, drawChartData])
 
     const timeScaleButtons = timeScaleSelect.map((item) => {
