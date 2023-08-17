@@ -23,7 +23,7 @@ function App() {
   const [instId, setInstId] = useState(instIdTemp);
   const [showLeftPanel, setShowLeftPanel] = useState(false);
   const [account, setAccount] = useState(tempAccount);
-  const chartHeight = 500;
+  const chartHeight = 700;
 
   useEffect(() => {
     const handleResize = () => {
