@@ -17,8 +17,10 @@
 .canvas-wrapper {
     position: relative;
     height: 700px;
+    border: 1px solid #333;
 }
 
 .chart {
     width: 100%
 }
+

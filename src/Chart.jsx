@@ -3,12 +3,9 @@ import { fabric } from 'fabric';
 import { instContext } from './appContext';
 import './Chart.css';
 import { throttle } from 'lodash'
-const MIN_MAX_MARGIN = 50;
-const PRICE_HORI_MARGIN = 53;
-const STROKE_WIDTH = 1;
-const DATE_AXIS_HEIGHT = 20;
-const GAP = 3;
 
+const PRICE_HORI_MARGIN = 53;
+const GAP = 3;
 
 const timeScaleSelect = ['1m', '5m', '15m', '30m', '1H', '2H', '4H', '12H', '1D']
 const timeScaleToMiliseconds = {
@@ -43,7 +40,7 @@ function closestMultipleOf125(num) {
 }
 
 const styleConfig = {
-    backgroundStrockColor: 'rgb(183, 183, 183)',
+    backgroundStrockColor: 'rgb(235, 230, 235)',
     redColor: 'red',
     greenColor: 'rgb(3, 179, 3)',
 }
@@ -77,13 +74,11 @@ function Chart({ height, width }) {
     const horiLineRef = useRef(null);
     const vertiLineRef = useRef(null);
     const priceTagRef = useRef(null);
-    const minPriceTagRef = useRef(null);
-    const maxPriceTagRef = useRef(null);
     const horiGridRef = useRef([]);
+    const horiLinePriceTag = useRef([]);
 
+    const XRenderStartRef = useRef(Math.round(width - PRICE_HORI_MARGIN - 15));
 
-    const XRenderStartRef = useRef(Math.round(width - PRICE_HORI_MARGIN - STROKE_WIDTH - 15));
-    const YRenderOffsetRef = useRef(0);
     const lastDateTimeRef = useRef(null);
     const datetextRef = useRef(null);
     const lineWidthRef = useRef(10);
@@ -144,21 +139,31 @@ function Chart({ height, width }) {
         if (chartDataRef.current.length > 0) {
             const rects = chartObjectsRef.current.rects;
             const wicks = chartObjectsRef.current.wicks;
-            const heightFactor = (fabricCanvasRef.current.height - 2 * MIN_MAX_MARGIN - DATE_AXIS_HEIGHT) / (maxPriceRef.current - minPriceRef.current);
-            const priceChangePerPixel = (maxPriceRef.current - minPriceRef.current) / (fabricCanvasRef.current.height - 2 * MIN_MAX_MARGIN - DATE_AXIS_HEIGHT);
+            const heightFactor = (fabricCanvasRef.current.height) / (maxPriceRef.current - minPriceRef.current);
+            const priceChangePerPixel = (maxPriceRef.current - minPriceRef.current) / (fabricCanvasRef.current.height);
             const throttledFetchMoreData = throttle(fetchMoreData, 1500);
             if (chartDataRef.current.length < 1440 && XRenderStartRef.current - lineWidthRef.current * chartDataRef.current.length > 0) {
                 throttledFetchMoreData();
             }
             const priceOf100pxs = priceChangePerPixel * 100;
             const cloestInterval = closestMultipleOf125(priceOf100pxs);
-            const numOfLines = fabricCanvasRef.current.height / 100;
-            const hiPrice = maxPriceRef.current + priceChangePerPixel * MIN_MAX_MARGIN;
-            const top = hiPrice % cloestInterval * heightFactor
+            const numOfLines = Math.ceil(fabricCanvasRef.current.height / (cloestInterval * heightFactor)) + 1;
+            const topHoriLine = maxPriceRef.current % cloestInterval * heightFactor
+            if (numOfLines < horiGridRef.current.length) {
+                for (let i = numOfLines; i < horiGridRef.current.length; i++) {
+                    fabricCanvasRef.current.remove(horiGridRef.current[i]);
+                    horiGridRef.current[i] = null;
+                }
+            }
+            if (numOfLines < horiLinePriceTag.current.length) {
+                for (let i = numOfLines; i < horiLinePriceTag.current.length; i++) {
+                    fabricPriceCanvasRef.current.remove(horiLinePriceTag.current[i]);
+                    horiLinePriceTag.current[i] = null;
+                }
+            }
             for (let i = 0; i < numOfLines; i++) {
-                let yPos = top + i * cloestInterval * heightFactor
+                let yPos = topHoriLine + i * cloestInterval * heightFactor
                 if (horiGridRef.current[i]) {
-                    
                     horiGridRef.current[i].set({
                         y1: yPos,
                         y2: yPos,
@@ -179,6 +184,26 @@ function Chart({ height, width }) {
                     fabricCanvasRef.current.add(newHoriLine);
                     horiGridRef.current.push(newHoriLine);
                 }
+                if (horiLinePriceTag.current[i]) {
+                    horiLinePriceTag.current[i].set({
+                        text: ((Math.floor(maxPriceRef.current / cloestInterval) - i) * cloestInterval).toFixed(1).toString(),
+                        left: 0,
+                        top: yPos,
+                    })
+                    horiLinePriceTag.current[i].setCoords();
+                } else {
+                    const newHoriLinePriceTag = new fabric.Text((maxPriceRef.current - i * cloestInterval).toFixed(1).toString(), {
+                        left: 0,
+                        top: yPos,
+                        fontSize: 15,
+                        selectable: false,
+                        color: 'black',
+                        hoverCursor: 'default',
+                        originY: 'center',
+                    })
+                    fabricPriceCanvasRef.current.add(newHoriLinePriceTag);
+                    horiLinePriceTag.current.push(newHoriLinePriceTag);
+                }
             }
             for (let i = 0; i < chartDataRef.current.length; i++) {
                 const item = chartDataRef.current[i];
@@ -188,7 +213,7 @@ function Chart({ height, width }) {
                 if (rects[i]) {
                     rects[i].set({
                         left: leftStart,
-                        top: Math.round(fabricCanvasRef.current.height - (DATE_AXIS_HEIGHT + MIN_MAX_MARGIN + (item[1] - minPriceRef.current) * heightFactor) + YRenderOffsetRef.current),
+                        top: Math.round(fabricCanvasRef.current.height - (item[1] - minPriceRef.current) * heightFactor),
                         fill: item[1] > item[4] ? styleConfig.redColor : styleConfig.greenColor,
                         width: lineWidthRef.current,
                         height: y,
@@ -197,7 +222,7 @@ function Chart({ height, width }) {
                 } else {
                     const rect = new fabric.Rect({
                         left: leftStart,
-                        top: Math.round(fabricCanvasRef.current.height - (DATE_AXIS_HEIGHT + MIN_MAX_MARGIN + (item[1] - minPriceRef.current) * heightFactor) + YRenderOffsetRef.current),
+                        top: Math.round(fabricCanvasRef.current.height - ((item[1] - minPriceRef.current) * heightFactor)),
                         fill: item[1] > item[4] ? styleConfig.redColor : styleConfig.greenColor,
                         width: lineWidthRef.current,
                         height: y,
@@ -211,9 +236,9 @@ function Chart({ height, width }) {
                 if (wicks[i]) {
                     wicks[i].set({
                         x1: leftStart + lineWidthRef.current / 2,
-                        y1: fabricCanvasRef.current.height - (DATE_AXIS_HEIGHT + MIN_MAX_MARGIN + (item[2] - minPriceRef.current) * heightFactor) + YRenderOffsetRef.current,
+                        y1: fabricCanvasRef.current.height - ((item[2] - minPriceRef.current) * heightFactor),
                         x2: leftStart + lineWidthRef.current / 2,
-                        y2: fabricCanvasRef.current.height - (DATE_AXIS_HEIGHT + MIN_MAX_MARGIN + (item[3] - minPriceRef.current) * heightFactor) + YRenderOffsetRef.current,
+                        y2: fabricCanvasRef.current.height - ((item[3] - minPriceRef.current) * heightFactor),
                         stroke: wickColor,
                     })
                     wicks[i].setCoords();
@@ -221,9 +246,9 @@ function Chart({ height, width }) {
                     const wick = new fabric.Line(
                         [
                             leftStart + lineWidthRef.current / 2,
-                            fabricCanvasRef.current.height - (DATE_AXIS_HEIGHT + MIN_MAX_MARGIN + (item[2] - minPriceRef.current) * heightFactor) + YRenderOffsetRef.current,
+                            fabricCanvasRef.current.height - ((item[2] - minPriceRef.current) * heightFactor),
                             leftStart + lineWidthRef.current / 2,
-                            fabricCanvasRef.current.height - (DATE_AXIS_HEIGHT + MIN_MAX_MARGIN + (item[3] - minPriceRef.current) * heightFactor) + YRenderOffsetRef.current,
+                            fabricCanvasRef.current.height - ((item[3] - minPriceRef.current) * heightFactor),
                         ],
                         {
                             stroke: wickColor,
@@ -238,48 +263,9 @@ function Chart({ height, width }) {
                 }
             }
 
-            if (minPriceTagRef.current) {
-                minPriceTagRef.current.set({
-                    text: (minPriceRef.current).toFixed(1).toString(),
-                    left: 0,
-                })
-                minPriceTagRef.current.setCoords();
-            } else {
-                const mintxt = new fabric.Text((minPriceRef.current + YRenderOffsetRef.current * priceChangePerPixel).toFixed(1).toString(), {
-                    left: 0,
-                    top: fabricCanvasRef.current.height - MIN_MAX_MARGIN,
-                    fontSize: 15,
-                    selectable: false,
-                    hoverCursor: 'default',
-                    originY: 'center',
-                })
-                minPriceTagRef.current = mintxt;
-                fabricPriceCanvasRef.current.add(mintxt);
-            }
-
-            if (maxPriceTagRef.current) {
-                maxPriceTagRef.current.set({
-                    left: 0,
-                    text: (maxPriceRef.current).toFixed(1).toString(),
-                })
-                maxPriceTagRef.current.setCoords();
-            } else {
-                const maxtxt = new fabric.Text((maxPriceRef.current + YRenderOffsetRef.current * priceChangePerPixel).toFixed(1).toString(), {
-                    left: 0,
-                    top: MIN_MAX_MARGIN,
-                    fontSize: 15,
-                    selectable: false,
-                    hoverCursor: 'default',
-                    originY: 'center',
-                })
-                maxPriceTagRef.current = maxtxt;
-                fabricPriceCanvasRef.current.add(maxtxt);
-            }
-
             //使得gridLine之间的间距大于100px
 
-
-            const priceY = (maxPriceRef.current - chartDataRef.current[0][4]) * heightFactor + YRenderOffsetRef.current + MIN_MAX_MARGIN;
+            const priceY = (maxPriceRef.current - chartDataRef.current[0][4]) * heightFactor;
             if (priceLineRef.current) {
                 priceLineRef.current.set({
                     y1: priceY,
@@ -289,7 +275,7 @@ function Chart({ height, width }) {
                 priceLineRef.current.setCoords();
             } else {
                 const priceLine = new fabric.Line(
-                    [STROKE_WIDTH, priceY, fabricCanvasRef.current.width - PRICE_HORI_MARGIN, priceY],
+                    [0, priceY, fabricCanvasRef.current.width - PRICE_HORI_MARGIN, priceY],
                     {
                         stroke: 'grey',
                         strokeWidth: 1,
@@ -324,6 +310,7 @@ function Chart({ height, width }) {
             }
             fabricCanvasRef.current.renderAll();
             fabricPriceCanvasRef.current.renderAll();
+            fabricPriceCanvasRef.current.bringToFront(priceTagRef.current);
         }
     }, [fetchMoreData]);
 
@@ -332,27 +319,19 @@ function Chart({ height, width }) {
         fabricCanvasRef.current.selection = false;
         fabricCanvasRef.current.setWidth(Math.max(width, 100));
 
-        fabricPriceCanvasRef.current.setHeight(height);
+        fabricPriceCanvasRef.current.setHeight(height - 2);
         fabricPriceCanvasRef.current.setWidth(PRICE_HORI_MARGIN);
         fabricPriceCanvasRef.current.selection = false;
         const container = fabricPriceCanvasRef.current.wrapperEl
         container.style.position = 'absolute';
         container.style.left = fabricCanvasRef.current.width - PRICE_HORI_MARGIN + 'px';
 
-        const rect = new fabric.Rect({
-            left: width - PRICE_HORI_MARGIN,
-            top: 0,
-            width: PRICE_HORI_MARGIN,
-            height: height,
-            fill: 'white',
-        });
-        fabricPriceCanvasRef.current.add(rect);
         if (chartDataRef.current.length > 0) {
             drawChartData()
         }
 
         return () => {
-            fabricPriceCanvasRef.current.remove(rect)
+
         }
     }, [height, width, drawChartData]);
 
@@ -405,7 +384,7 @@ function Chart({ height, width }) {
 
 
     useEffect(() => {
-        XRenderStartRef.current = fabricCanvasRef.current.width - PRICE_HORI_MARGIN - STROKE_WIDTH;
+        XRenderStartRef.current = fabricCanvasRef.current.width - PRICE_HORI_MARGIN
     }, [timeScale, instId])
 
     useEffect(() => {
@@ -426,7 +405,7 @@ function Chart({ height, width }) {
                 horiLineRef.current.setCoords();
             } else {
                 const newHoriLine = new fabric.Line(
-                    [STROKE_WIDTH, posY, fabricCanvasRef.current.width - STROKE_WIDTH - PRICE_HORI_MARGIN, posY],
+                    [0, posY, fabricCanvasRef.current.width - PRICE_HORI_MARGIN, posY],
                     {
                         stroke: 'black',
                         strokeWidth: 1,
@@ -447,7 +426,7 @@ function Chart({ height, width }) {
                 vertiLineRef.current.setCoords();
             } else {
                 const newVertiLine = new fabric.Line(
-                    [posX, STROKE_WIDTH, posX, fabricCanvasRef.current.height - STROKE_WIDTH - DATE_AXIS_HEIGHT],
+                    [posX, 0, posX, fabricCanvasRef.current.height],
                     {
                         stroke: 'black',
                         strokeWidth: 1,
@@ -471,7 +450,7 @@ function Chart({ height, width }) {
                 const newDatetext = new fabric.Text(
                     displayDateString, {
                     left: posX,
-                    top: fabricCanvasRef.current.height - DATE_AXIS_HEIGHT - 2,
+                    top: fabricCanvasRef.current.height - 20 - 2,
                     originX: 'center',
                     fontSize: 20,
                     backgroundColor: 'black',
@@ -503,10 +482,9 @@ function Chart({ height, width }) {
             const initialMouseX = event.e.clientX;
             const initialMouseY = event.e.clientY;
             let initXRenderStart = XRenderStartRef.current;
-            let initYRenderOffset = YRenderOffsetRef.current;
             let initminPrice = minPriceRef.current;
             let initmaxPrice = maxPriceRef.current;
-            const priceChangePerPixel = (maxPriceRef.current - minPriceRef.current) / (fabricCanvasRef.current.height - 2 * MIN_MAX_MARGIN - DATE_AXIS_HEIGHT);
+            const priceChangePerPixel = (maxPriceRef.current - minPriceRef.current) / (fabricCanvasRef.current.height);
             fabricCanvasRef.current.defaultCursor = 'grabbing';
             fabricCanvasRef.current.hoverCursor = 'grabbing';
             fabricCanvasRef.current.off('mouse:move');
@@ -516,7 +494,6 @@ function Chart({ height, width }) {
                 const movementY = event.e.clientY - initialMouseY;
                 //console.log(movementX);
                 XRenderStartRef.current = initXRenderStart + movementX;
-                YRenderOffsetRef.current = initYRenderOffset + movementY;
                 minPriceRef.current = initminPrice + movementY * priceChangePerPixel;
                 maxPriceRef.current = initmaxPrice + movementY * priceChangePerPixel;
                 throttledDrawChartData();
