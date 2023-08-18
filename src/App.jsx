@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState} from 'react'
 import './App.css'
 import { instContext, accountContext } from './appContext'
 import Chart from './Chart'
@@ -18,23 +18,15 @@ let tempAccount = {
 }
 
 function App() {
-  const [chartWidth, setChartWidth] = useState(window.innerWidth * 0.7)
+
+
   const [instId, setInstId] = useState(instIdTemp);
   const [account, setAccount] = useState(tempAccount);
 
   const chartHeight = window.innerHeight * 0.8;
 
   useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth) {
-        setChartWidth(window.innerWidth * 0.6);
-      }
-    }
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => {
-      window.removeEventListener('resize', handleResize);
-    }
+
   }, [])
 
   return (
@@ -43,18 +35,16 @@ function App() {
         <accountContext.Provider value={account}>
           <Header setInstId={setInstId} />
           <div className='main'>
-            <div className='panel'>
               <div className='left-panel-wrapper'>
                 <OrderHistory />
                 <Account />
               </div>
               <div className='middle-panel-wrapper'>
-                <Chart height={chartHeight} width={chartWidth} />
+                <Chart height={chartHeight}/>
               </div>
               <div className='right-panel-wrapper'>
                 <OrderPanel />
               </div>
-            </div>
           </div>
         </accountContext.Provider>
       </instContext.Provider>

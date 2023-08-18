@@ -112,7 +112,8 @@ const styleConfig = {
 }
 
 // eslint-disable-next-line react/prop-types
-function Chart({ height, width }) {
+function Chart() {
+
     const baseURL = 'https://www.okx.com'
     const canvasRef = useRef(null);
     const fabricCanvasRef = useRef(null);
@@ -136,7 +137,7 @@ function Chart({ height, width }) {
     const vertiLineGridTag = useRef([]);
     
 
-    const XRenderStartRef = useRef(Math.round(width - PRICE_HORI_MARGIN - 15));
+    const XRenderStartRef = useRef(0);
     const lastRenderRange = useRef([]);
     const lastDateTimeRef = useRef(null);
     const datetextRef = useRef(null);
@@ -158,14 +159,23 @@ function Chart({ height, width }) {
         //初始化k-线画布
         fabricCanvasRef.current = new fabric.Canvas(canvasRef.current);
         fabricCanvasRef.current.imageSmoothingEnabled = false;
+        fabricCanvasRef.current.setWidth(canvasWrapperRef.current.clientWidth - 20);
+        fabricCanvasRef.current.setHeight(window.innerHeight * 0.8);
+        fabricCanvasRef.current.selection = false;
         //初始化价格画布（上层）
         fabricPriceCanvasRef.current = new fabric.Canvas(priceCanvasRef.current);
         fabricPriceCanvasRef.current.imageSmoothingEnabled = false;
         fabricPriceCanvasRef.current.backgroundColor = 'white';
-        //初始化时间画布（下层）
+        fabricPriceCanvasRef.current.setWidth(PRICE_HORI_MARGIN);
+        fabricPriceCanvasRef.current.setHeight(window.innerHeight * 0.8);
+        fabricPriceCanvasRef.current.selection = false;
+        //初始化时间画布
         fabricTimeCanvasRef.current = new fabric.Canvas(timeCanvasRef.current);
         fabricTimeCanvasRef.current.imageSmoothingEnabled = false;
         fabricTimeCanvasRef.current.backgroundColor = 'white';
+        fabricTimeCanvasRef.current.setWidth(canvasWrapperRef.current.clientWidth - 20);
+        fabricTimeCanvasRef.current.setHeight(40);
+        fabricTimeCanvasRef.current.selection = false;
         //设置价格画布container的样式
         const container = fabricPriceCanvasRef.current.wrapperEl
         container.style.position = 'absolute';
@@ -177,16 +187,29 @@ function Chart({ height, width }) {
         lowerContainer.style.position = 'absolute';
         lowerContainer.style.top = '0';
         lowerContainer.style.left = '0';
-
         //初始化时间画布container的样式
         const timeContainer = fabricTimeCanvasRef.current.wrapperEl;
         timeContainer.style.position = 'absolute';
         timeContainer.style.top = fabricCanvasRef.current.height + 'px';
         timeContainer.style.left = '0';
+
+        function handleResize() {
+            fabricCanvasRef.current.setWidth(canvasWrapperRef.current.clientWidth);
+            fabricCanvasRef.current.setHeight(window.innerHeight * 0.8)
+            const container = fabricPriceCanvasRef.current.wrapperEl;
+            container.style.left = fabricCanvasRef.current.width - PRICE_HORI_MARGIN + 'px';
+            container.style.zIndex = '2';
+            fabricPriceCanvasRef.current.setHeight(window.innerHeight * 0.8);
+            const timeContainer = fabricTimeCanvasRef.current.wrapperEl;
+            timeContainer.style.top = fabricCanvasRef.current.height + 'px';
+            fabricTimeCanvasRef.current.setWidth(canvasWrapperRef.current.clientWidth)
+        }
+        window.addEventListener('resize', handleResize);
         return () => {
             fabricCanvasRef.current.dispose();
             fabricPriceCanvasRef.current.dispose();
             fabricTimeCanvasRef.current.dispose();
+            window.removeEventListener('resize', handleResize);
         };
     }, []);
 
@@ -217,8 +240,8 @@ function Chart({ height, width }) {
             const priceOf100pxs = priceChangePerPixel * 100;
             const cloestInterval = closestMultipleOf125(priceOf100pxs);
             const numOfLines = Math.ceil(fabricCanvasRef.current.height / (cloestInterval * heightFactor)) + 1;
-            console.log('numOfLines' , numOfLines)
             const topHoriLine = maxPriceRef.current % cloestInterval * heightFactor
+
             //清除多余的网格线和价格标签
             if (numOfLines < horiGridRef.current.length) {
                 for (let i = numOfLines - 1; i < horiGridRef.current.length; i++) {
@@ -281,7 +304,6 @@ function Chart({ height, width }) {
             //计算时间尺度
             const time = Math.floor(1500 / (lineWidthRef.current + GAP)) * timeScaleToMiliseconds[timeScale];
             const timeLevelString = timeLevel(time);
-            console.log(timeLevelString)
             const numOfVertiLines = Math.ceil(fabricCanvasRef.current.width / (lineWidthRef.current + GAP) * timeScaleToMiliseconds[timeScale] / timeScaleToMiliseconds[timeLevelString]) + 5;
             //开始绘制k线的坐标与canvas宽度之间间隔k线个数
             const kLinesInBetween =  Math.ceil((fabricCanvasRef.current.width - PRICE_HORI_MARGIN - XRenderStartRef.current - lineWidthRef.current / 2) / (lineWidthRef.current + GAP) + 1)
@@ -429,6 +451,7 @@ function Chart({ height, width }) {
                         visible: true,
                     })
                     rects[i].setCoords();
+                    rects[i].bringToFront();
                 } else {
                     const rect = new fabric.Rect({
                         left: leftStart,
@@ -441,6 +464,7 @@ function Chart({ height, width }) {
                         visible: true,
                     })
                     fabricCanvasRef.current.add(rect);
+                    rect.bringToFront();
                     rects.push(rect);
                 }
                 const wickColor = item[1] > item[4] ? styleConfig.redColor : styleConfig.greenColor;
@@ -482,33 +506,9 @@ function Chart({ height, width }) {
         }
     }, [fetchMoreData, timeScale]);
 
-    useEffect(() => {
-        fabricCanvasRef.current.setHeight(height);
-        fabricCanvasRef.current.selection = false;
-        fabricCanvasRef.current.setWidth(Math.max(width, 100));
-
-        fabricPriceCanvasRef.current.setHeight(height);
-        fabricPriceCanvasRef.current.setWidth(PRICE_HORI_MARGIN);
-        fabricPriceCanvasRef.current.selection = false;
-        const container = fabricPriceCanvasRef.current.wrapperEl
-        container.style.position = 'absolute';
-        container.style.left = fabricCanvasRef.current.width - PRICE_HORI_MARGIN + 'px';
-
-        fabricTimeCanvasRef.current.setHeight(40);
-        fabricTimeCanvasRef.current.setWidth(width);
-        const timeContainer = fabricTimeCanvasRef.current.wrapperEl;
-        timeContainer.style.top = fabricCanvasRef.current.height + 'px';
-
-        canvasWrapperRef.current.style.height = height + 40 + 'px';
-
-        if (chartDataRef.current.length > 0) {
-            drawChartData()
-        }
-
-        return () => {
-
-        }
-    }, [height, width, drawChartData]);
+        
+        
+        
 
     useEffect(() => {
         XRenderStartRef.current = Math.round(fabricCanvasRef.current.width - PRICE_HORI_MARGIN)
@@ -773,11 +773,13 @@ function Chart({ height, width }) {
 
     return (
         <div className="chart">
+
             <div className="canvas-wrapper" ref={canvasWrapperRef}>
                 <canvas ref={canvasRef} className="inner-canvas" />
                 <canvas ref={priceCanvasRef} className="price-canvas" />
                 <canvas ref={timeCanvasRef} className="time-canvas" />
             </div>
+
             <div className="time-scale-wrapper">
                 {timeScaleButtons}
             </div>

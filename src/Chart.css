@@ -16,10 +16,16 @@
 
 .canvas-wrapper {
     position: relative;
-    
+    height: calc(80vh + 40px);
 }
 
 .chart {
-    width: 100%
+    width: 100%;
+    border-radius: 2%;
+    border: 2px solid rgb(225, 225, 225);
+    margin-top: 20px;
+    padding: 10px
 }
+
+
 
