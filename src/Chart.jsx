@@ -217,16 +217,17 @@ function Chart({ height, width }) {
             const priceOf100pxs = priceChangePerPixel * 100;
             const cloestInterval = closestMultipleOf125(priceOf100pxs);
             const numOfLines = Math.ceil(fabricCanvasRef.current.height / (cloestInterval * heightFactor)) + 1;
+            console.log('numOfLines' , numOfLines)
             const topHoriLine = maxPriceRef.current % cloestInterval * heightFactor
             //清除多余的网格线和价格标签
             if (numOfLines < horiGridRef.current.length) {
-                for (let i = numOfLines; i < horiGridRef.current.length; i++) {
+                for (let i = numOfLines - 1; i < horiGridRef.current.length; i++) {
                     fabricCanvasRef.current.remove(horiGridRef.current[i]);
                     horiGridRef.current[i] = null;
                 }
             }
             if (numOfLines < horiLineGridTag.current.length) {
-                for (let i = numOfLines; i < horiLineGridTag.current.length; i++) {
+                for (let i = numOfLines - 1; i < horiLineGridTag.current.length; i++) {
                     fabricPriceCanvasRef.current.remove(horiLineGridTag.current[i]);
                     horiLineGridTag.current[i] = null;
                 }
@@ -264,7 +265,7 @@ function Chart({ height, width }) {
                     })
                     horiLineGridTag.current[i].setCoords();
                 } else {
-                    const newhoriLineGridTag = new fabric.Text((maxPriceRef.current - i * cloestInterval).toFixed(1).toString(), {
+                    const newhoriLineGridTag = new fabric.Text(((Math.floor(maxPriceRef.current / cloestInterval) - i) * cloestInterval).toFixed(1).toString(), {
                         left: 0,
                         top: yPos,
                         fontSize: 15,
@@ -282,7 +283,6 @@ function Chart({ height, width }) {
             const timeLevelString = timeLevel(time);
             console.log(timeLevelString)
             const numOfVertiLines = Math.ceil(fabricCanvasRef.current.width / (lineWidthRef.current + GAP) * timeScaleToMiliseconds[timeScale] / timeScaleToMiliseconds[timeLevelString]) + 5;
-            console.log('numberOfVertiLines', numOfVertiLines);
             //开始绘制k线的坐标与canvas宽度之间间隔k线个数
             const kLinesInBetween =  Math.ceil((fabricCanvasRef.current.width - PRICE_HORI_MARGIN - XRenderStartRef.current - lineWidthRef.current / 2) / (lineWidthRef.current + GAP) + 1)
             //在canvas之外接近canvas右边缘的k线的时间戳

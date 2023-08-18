@@ -1,8 +1,7 @@
-import { useEffect, useState} from 'react'
+import { useEffect, useState, useRef } from 'react'
 import './App.css'
-import { instContext, showLeftPanelContext, accountContext } from './appContext'
+import { instContext, accountContext } from './appContext'
 import Chart from './Chart'
-import Sidebar from './Sidebar'
 import Header from './Header'
 import OrderPanel from './OrderPanel'
 import OrderHistory from './OrderHistory'
@@ -21,14 +20,14 @@ let tempAccount = {
 function App() {
   const [chartWidth, setChartWidth] = useState(window.innerWidth * 0.7)
   const [instId, setInstId] = useState(instIdTemp);
-  const [showLeftPanel, setShowLeftPanel] = useState(false);
   const [account, setAccount] = useState(tempAccount);
+
   const chartHeight = window.innerHeight * 0.8;
 
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth) {
-        setChartWidth(showLeftPanel ? window.innerWidth * 0.5 : window.innerWidth * 0.7);
+        setChartWidth(window.innerWidth * 0.6);
       }
     }
     handleResize();
@@ -36,7 +35,7 @@ function App() {
     return () => {
       window.removeEventListener('resize', handleResize);
     }
-  }, [showLeftPanel])
+  }, [])
 
   return (
     <div>
@@ -44,16 +43,11 @@ function App() {
         <accountContext.Provider value={account}>
           <Header setInstId={setInstId} />
           <div className='main'>
-            <showLeftPanelContext.Provider value={showLeftPanel}>
-              <div className='sidebar-wrapper'>
-                <Sidebar setShowLeftPanel={setShowLeftPanel} setAccount={setAccount}/>
-              </div>
-            </showLeftPanelContext.Provider>
             <div className='panel'>
-              {showLeftPanel ? (<div className='left-panel-wrapper'>
-                {showLeftPanel === 'order history' ? (<OrderHistory />) : null}
-                {showLeftPanel === 'acount' ? (<Account />) : null}
-              </div>) : null}
+              <div className='left-panel-wrapper'>
+                <OrderHistory />
+                <Account />
+              </div>
               <div className='middle-panel-wrapper'>
                 <Chart height={chartHeight} width={chartWidth} />
               </div>
