@@ -11,16 +11,27 @@ const timeScaleSelect = ['1m', '5m', '15m', '30m', '1H', '2H', '4H', '12H', '1D'
 const timeScaleToMiliseconds = {
     '1m': 60 * 1000,
     '5m': 5 * 60 * 1000,
+    '10m': 10 * 60 * 1000,
     '15m': 15 * 60 * 1000,
     '30m': 30 * 60 * 1000,
     '1H': 60 * 60 * 1000,
     '2H': 2 * 60 * 60 * 1000,
     '4H': 4 * 60 * 60 * 1000,
+    '6H': 6 * 60 * 60 * 1000,
+    '8H': 8 * 60 * 60 * 1000,
     '12H': 12 * 60 * 60 * 1000,
     '1D': 24 * 60 * 60 * 1000,
+    '2D': 2 * 24 * 60 * 60 * 1000,
+    '3D': 3 * 24 * 60 * 60 * 1000,
+    '7D': 7 * 24 * 60 * 60 * 1000,
+    '14D': 14 * 24 * 60 * 60 * 1000,
+    '1M': 30 * 24 * 60 * 60 * 1000,
+    '2M': 60 * 24 * 60 * 60 * 1000,
+    '3M': 90 * 24 * 60 * 60 * 1000,
+    '6M': 180 * 24 * 60 * 60 * 1000,
 }
 
-//given a number, return the cloest number of the patter 1/2/5*10Ex x can be any integer number
+//given a number, return the closest number of the patter 1/2/5*10Ex, x can be any integer number
 function closestMultipleOf125(num) {
     const logValue = Math.log10(num);
     const intPart = Math.floor(logValue);
@@ -39,6 +50,61 @@ function closestMultipleOf125(num) {
     return base * Math.pow(10, intPart);
 }
 
+function timeLevel(num) {
+    if (num > timeScaleToMiliseconds['2M']) {
+        return '14D';
+    } else if(num > timeScaleToMiliseconds['1M']) {
+        return '7D'
+    } else if(num > timeScaleToMiliseconds['14D']) {
+        return '2D';
+    } else if (num > timeScaleToMiliseconds['7D']) {
+        return '1D';
+    } else if (num > timeScaleToMiliseconds['3D']) {
+        return '8H';
+    } else if (num > timeScaleToMiliseconds['1D']) {
+        return '4H'
+    } else if (num > timeScaleToMiliseconds['12H']) {
+        return '2H'
+    } else if (num > timeScaleToMiliseconds['6H']) {
+        return '1H'
+    } else if (num > timeScaleToMiliseconds['4H']) {
+        return '30m'
+    } else if (num > timeScaleToMiliseconds['2H']) {
+        return '15m'
+    } else if (num > timeScaleToMiliseconds['1H']) {
+        return '10m'
+    } else if (num > timeScaleToMiliseconds['30m']) {
+        return '5m'
+    } else return timeScaleToMiliseconds['1m'];
+}
+
+function formatTime(milliseconds) {
+    const date = new Date(milliseconds);
+
+    // 检查是否为年份开始
+    if (date.getMonth() === 0 && date.getDate() === 1 && date.getHours() === 8 && date.getMinutes() === 0 && date.getSeconds() === 0 && date.getMilliseconds() === 0) {
+        return date.getFullYear().toString();
+    }
+
+    // 检查是否为月份开始
+    if (date.getDate() === 1 && date.getHours() === 8 && date.getMinutes() === 0 && date.getSeconds() === 0 && date.getMilliseconds() === 0) {
+        return (date.getMonth() + 1) + '月';  // 月份是从0开始的，所以+1
+    }
+
+    // 检查是否为天开始
+    if (date.getHours() === 8 && date.getMinutes() === 0 && date.getSeconds() === 0 && date.getMilliseconds() === 0) {
+        return date.getMonth() + 1 + '/' + date.getDate().toString();
+    }
+
+    // 检查是否为小时开始
+    if (date.getMinutes() === 0 && date.getSeconds() === 0 && date.getMilliseconds() === 0) {
+        return date.getHours().toString();
+    }
+
+    // 否则，输出小时:分钟
+    return date.getHours() + ':' + String(date.getMinutes()).padStart(2, '0');  // 使用padStart确保分钟是两位数
+}
+
 const styleConfig = {
     backgroundStrockColor: 'rgb(235, 230, 235)',
     redColor: 'red',
@@ -52,6 +118,8 @@ function Chart({ height, width }) {
     const fabricCanvasRef = useRef(null);
     const priceCanvasRef = useRef(null);
     const fabricPriceCanvasRef = useRef(null);
+    const timeCanvasRef = useRef(null);
+    const fabricTimeCanvasRef = useRef(null);
 
     const [timeScale, setTimeScale] = useState('15m');
 
@@ -64,6 +132,8 @@ function Chart({ height, width }) {
     const priceTagRef = useRef(null);
     const horiGridRef = useRef([]);
     const horiLineGridTag = useRef([]);
+    const vertiLineGridRef = useRef([]);
+    const vertiLineGridTag = useRef([]);
     
 
     const XRenderStartRef = useRef(Math.round(width - PRICE_HORI_MARGIN - 15));
@@ -92,6 +162,10 @@ function Chart({ height, width }) {
         fabricPriceCanvasRef.current = new fabric.Canvas(priceCanvasRef.current);
         fabricPriceCanvasRef.current.imageSmoothingEnabled = false;
         fabricPriceCanvasRef.current.backgroundColor = 'white';
+        //初始化时间画布（下层）
+        fabricTimeCanvasRef.current = new fabric.Canvas(timeCanvasRef.current);
+        fabricTimeCanvasRef.current.imageSmoothingEnabled = false;
+        fabricTimeCanvasRef.current.backgroundColor = 'white';
         //设置价格画布container的样式
         const container = fabricPriceCanvasRef.current.wrapperEl
         container.style.position = 'absolute';
@@ -103,9 +177,16 @@ function Chart({ height, width }) {
         lowerContainer.style.position = 'absolute';
         lowerContainer.style.top = '0';
         lowerContainer.style.left = '0';
+
+        //初始化时间画布container的样式
+        const timeContainer = fabricTimeCanvasRef.current.wrapperEl;
+        timeContainer.style.position = 'absolute';
+        timeContainer.style.top = fabricCanvasRef.current.height + 'px';
+        timeContainer.style.left = '0';
         return () => {
             fabricCanvasRef.current.dispose();
             fabricPriceCanvasRef.current.dispose();
+            fabricTimeCanvasRef.current.dispose();
         };
     }, []);
 
@@ -132,10 +213,12 @@ function Chart({ height, width }) {
             if (chartDataRef.current.length < 1440 && XRenderStartRef.current - lineWidthRef.current * chartDataRef.current.length > 0) {
                 throttledFetchMoreData();
             }
+            //计算价格尺度，确定网格线数量，确保每条网格线之间间距在100px左右
             const priceOf100pxs = priceChangePerPixel * 100;
             const cloestInterval = closestMultipleOf125(priceOf100pxs);
             const numOfLines = Math.ceil(fabricCanvasRef.current.height / (cloestInterval * heightFactor)) + 1;
             const topHoriLine = maxPriceRef.current % cloestInterval * heightFactor
+            //清除多余的网格线和价格标签
             if (numOfLines < horiGridRef.current.length) {
                 for (let i = numOfLines; i < horiGridRef.current.length; i++) {
                     fabricCanvasRef.current.remove(horiGridRef.current[i]);
@@ -148,6 +231,7 @@ function Chart({ height, width }) {
                     horiLineGridTag.current[i] = null;
                 }
             }
+            //更新网格线位置和价格标签
             for (let i = 0; i < numOfLines; i++) {
                 let yPos = topHoriLine + i * cloestInterval * heightFactor
                 if (horiGridRef.current[i]) {
@@ -193,6 +277,85 @@ function Chart({ height, width }) {
                     horiLineGridTag.current.push(newhoriLineGridTag);
                 }
             }
+            //计算时间尺度
+            const time = Math.floor(1500 / (lineWidthRef.current + GAP)) * timeScaleToMiliseconds[timeScale];
+            const timeLevelString = timeLevel(time);
+            console.log(timeLevelString)
+            const numOfVertiLines = Math.ceil(fabricCanvasRef.current.width / (lineWidthRef.current + GAP) * timeScaleToMiliseconds[timeScale] / timeScaleToMiliseconds[timeLevelString]) + 5;
+            console.log('numberOfVertiLines', numOfVertiLines);
+            //开始绘制k线的坐标与canvas宽度之间间隔k线个数
+            const kLinesInBetween =  Math.ceil((fabricCanvasRef.current.width - PRICE_HORI_MARGIN - XRenderStartRef.current - lineWidthRef.current / 2) / (lineWidthRef.current + GAP) + 1)
+            //在canvas之外接近canvas右边缘的k线的时间戳
+            const canvasStartTime = Number(chartDataRef.current[0][0]) + kLinesInBetween * timeScaleToMiliseconds[timeScale];
+            //计算最靠近canvas右边缘的时间网格线的时间戳
+            const gridStartTime = Math.floor(canvasStartTime / timeScaleToMiliseconds[timeLevelString]) * timeScaleToMiliseconds[timeLevelString];
+            const gridInterval = timeScaleToMiliseconds[timeLevelString] / timeScaleToMiliseconds[timeScale] * (lineWidthRef.current + GAP);
+            //计算最靠近canvas右边缘的时间网格线的x坐标
+            const gridStartX = (gridStartTime - Number(chartDataRef.current[0][0])) / timeScaleToMiliseconds[timeScale] * (lineWidthRef.current + GAP) + XRenderStartRef.current - (lineWidthRef.current / 2 + GAP);
+            //清除多余的时间网格线和时间标签
+            if (numOfVertiLines < vertiLineGridRef.current.length) {
+                for (let i = numOfVertiLines; i < vertiLineGridRef.current.length; i++) {
+                    fabricCanvasRef.current.remove(vertiLineGridRef.current[i]);
+                    vertiLineGridRef.current[i] = null;
+                }
+            }
+            if (numOfVertiLines < vertiLineGridTag.current.length) {
+                for (let i = numOfVertiLines; i < vertiLineGridTag.current.length; i++) {
+                    fabricTimeCanvasRef.current.remove(vertiLineGridTag.current[i]);
+                    vertiLineGridTag.current[i] = null;
+                }
+            }
+            //更新时间网格线和时间标签
+            for (let i = 0; i < numOfVertiLines; i++) {
+                let xPos = gridStartX - i * gridInterval;
+                if (vertiLineGridRef.current[i]) {
+                    vertiLineGridRef.current[i].set({
+                        x1: xPos,
+                        x2: xPos,
+                        y1: 0,
+                        y2: fabricCanvasRef.current.height,
+                    })
+                    vertiLineGridRef.current[i].setCoords();
+                } else {
+                    const newVertiLine = new fabric.Line(
+                        [xPos, 0, xPos, fabricCanvasRef.current.height],
+                        {
+                            stroke: styleConfig.backgroundStrockColor,
+                            strokeWidth: 1,
+                            selectable: false,
+                            hoverCursor: 'default',
+                        }
+                    )
+                    fabricCanvasRef.current.add(newVertiLine);
+                    vertiLineGridRef.current.push(newVertiLine);
+                }
+            }
+            for (let i = 0; i < numOfVertiLines; i++) {
+                let xPos = gridStartX - i * gridInterval;
+                const tempDate = formatTime(gridStartTime - i * timeScaleToMiliseconds[timeLevelString]);
+                if (vertiLineGridTag.current[i]) {
+                    vertiLineGridTag.current[i].set({
+                        text: tempDate,
+                        left: xPos,
+                        top: 0,
+                    })
+                    vertiLineGridTag.current[i].setCoords();
+                } else {
+                    const newVertiLineGridTag = new fabric.Text(tempDate, {
+                        left: xPos,
+                        top: 0,
+                        fontSize: 15,
+                        selectable: false,
+                        color: 'black',
+                        hoverCursor: 'default',
+                        originX: 'center',
+                    })
+                    fabricTimeCanvasRef.current.add(newVertiLineGridTag);
+                    vertiLineGridTag.current.push(newVertiLineGridTag);
+                }
+            }
+
+
             const priceY = (maxPriceRef.current - chartDataRef.current[0][4]) * heightFactor;
             if (priceLineRef.current) {
                 priceLineRef.current.set({
@@ -315,21 +478,24 @@ function Chart({ height, width }) {
 
             fabricCanvasRef.current.renderAll();
             fabricPriceCanvasRef.current.renderAll();
-            
+            fabricTimeCanvasRef.current.renderAll();
         }
-    }, [fetchMoreData]);
+    }, [fetchMoreData, timeScale]);
 
     useEffect(() => {
         fabricCanvasRef.current.setHeight(height);
         fabricCanvasRef.current.selection = false;
         fabricCanvasRef.current.setWidth(Math.max(width, 100));
 
-        fabricPriceCanvasRef.current.setHeight(height - 2);
+        fabricPriceCanvasRef.current.setHeight(height);
         fabricPriceCanvasRef.current.setWidth(PRICE_HORI_MARGIN);
         fabricPriceCanvasRef.current.selection = false;
         const container = fabricPriceCanvasRef.current.wrapperEl
         container.style.position = 'absolute';
         container.style.left = fabricCanvasRef.current.width - PRICE_HORI_MARGIN + 'px';
+
+        fabricTimeCanvasRef.current.setHeight(40);
+        fabricTimeCanvasRef.current.setWidth(width);
 
         if (chartDataRef.current.length > 0) {
             drawChartData()
@@ -341,7 +507,7 @@ function Chart({ height, width }) {
     }, [height, width, drawChartData]);
 
     useEffect(() => {
-        XRenderStartRef.current = fabricCanvasRef.current.width - PRICE_HORI_MARGIN
+        XRenderStartRef.current = Math.round(fabricCanvasRef.current.width - PRICE_HORI_MARGIN)
         if (lastRenderRange.current.length == 2) {
             let rects = chartObjectsRef.current.rects;
             let wicks = chartObjectsRef.current.wicks;
@@ -526,9 +692,9 @@ function Chart({ height, width }) {
 
 
         fabricCanvasRef.current.on('mouse:down', function (event) {
-            const initialMouseX = event.e.clientX;
-            const initialMouseY = event.e.clientY;
-            let initXRenderStart = XRenderStartRef.current;
+            const initialMouseX = Math.round(event.e.clientX);
+            const initialMouseY = Math.round(event.e.clientY);
+            let initXRenderStart = Math.round(XRenderStartRef.current);
             let initminPrice = minPriceRef.current;
             let initmaxPrice = maxPriceRef.current;
             const priceChangePerPixel = (maxPriceRef.current - minPriceRef.current) / (fabricCanvasRef.current.height);
@@ -537,8 +703,8 @@ function Chart({ height, width }) {
             fabricCanvasRef.current.off('mouse:move');
             fabricCanvasRef.current.on('mouse:move', function (event) {
                 throttledHandleMouseMove(event);
-                const movementX = event.e.clientX - initialMouseX
-                const movementY = event.e.clientY - initialMouseY;
+                const movementX = Math.round(event.e.clientX - initialMouseX)
+                const movementY = Math.round(event.e.clientY - initialMouseY);
                 //console.log(movementX);
                 XRenderStartRef.current = initXRenderStart + movementX;
                 minPriceRef.current = initminPrice + movementY * priceChangePerPixel;
@@ -604,6 +770,7 @@ function Chart({ height, width }) {
             <div className="canvas-wrapper">
                 <canvas ref={canvasRef} className="inner-canvas" />
                 <canvas ref={priceCanvasRef} className="price-canvas" />
+                <canvas ref={timeCanvasRef} className="time-canvas" />
             </div>
             <div className="time-scale-wrapper">
                 {timeScaleButtons}
