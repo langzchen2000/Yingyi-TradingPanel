@@ -120,7 +120,7 @@ function Chart({ height, width }) {
     const fabricPriceCanvasRef = useRef(null);
     const timeCanvasRef = useRef(null);
     const fabricTimeCanvasRef = useRef(null);
-
+    const canvasWrapperRef = useRef(null);
     const [timeScale, setTimeScale] = useState('15m');
 
     const maxPriceRef = useRef(0);
@@ -496,6 +496,10 @@ function Chart({ height, width }) {
 
         fabricTimeCanvasRef.current.setHeight(40);
         fabricTimeCanvasRef.current.setWidth(width);
+        const timeContainer = fabricTimeCanvasRef.current.wrapperEl;
+        timeContainer.style.top = fabricCanvasRef.current.height + 'px';
+
+        canvasWrapperRef.current.style.height = height + 40 + 'px';
 
         if (chartDataRef.current.length > 0) {
             drawChartData()
@@ -613,6 +617,7 @@ function Chart({ height, width }) {
                     top: posY,
                 })
                 horiLinePriceTag.current.setCoords();
+                horiLinePriceTag.current.bringToFront();
             } else {
                 const newHoriLinePriceTag = new fabric.Text(posYPrice.toString(), { 
                     left: 0,
@@ -626,6 +631,7 @@ function Chart({ height, width }) {
                 })
                 horiLinePriceTag.current = newHoriLinePriceTag;
                 fabricPriceCanvasRef.current.add(newHoriLinePriceTag);
+                horiLinePriceTag.current.bringToFront();
             }
 
             if (vertiLineRef.current) {
@@ -767,7 +773,7 @@ function Chart({ height, width }) {
 
     return (
         <div className="chart">
-            <div className="canvas-wrapper">
+            <div className="canvas-wrapper" ref={canvasWrapperRef}>
                 <canvas ref={canvasRef} className="inner-canvas" />
                 <canvas ref={priceCanvasRef} className="price-canvas" />
                 <canvas ref={timeCanvasRef} className="time-canvas" />

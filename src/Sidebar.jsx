@@ -1,9 +1,10 @@
-import React, { useEffect, useRef, useState, useLayoutEffect, useContext } from 'react';
+import {useRef, useState, useContext } from 'react';
 import 'material-icons/iconfont/material-icons.css';
 import { showLeftPanelContext, accountContext } from './appContext';
 import './Sidebar.css'
 
-function Sidebar({ setShowLeftPanel, setChartWidth, setAccount }) {
+// eslint-disable-next-line react/prop-types
+function Sidebar({ setShowLeftPanel, setAccount }) {
     const showLeftPanel = useContext(showLeftPanelContext);
     const account = useContext(accountContext);
     const modalRef = useRef(null);
@@ -12,10 +13,8 @@ function Sidebar({ setShowLeftPanel, setChartWidth, setAccount }) {
     const handleClick = (leftPanelContent) => {
         if (showLeftPanel !== leftPanelContent) {
             setShowLeftPanel(leftPanelContent);
-            setChartWidth(window.innerWidth * 0.5)
         } else {
             setShowLeftPanel(false);
-            setChartWidth(window.innerWidth * 0.7)
         }
     }
     const setModalVisible = () => {

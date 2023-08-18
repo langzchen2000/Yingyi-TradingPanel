@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useLayoutEffect } from 'react';
+import { useEffect, useRef, useState} from 'react';
 import './OrderPanel.css'
 function OrderPanel() {
     const buyRef = useRef(null);
