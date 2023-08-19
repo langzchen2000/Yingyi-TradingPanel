@@ -1,6 +1,7 @@
 import { useEffect, useContext, useState } from 'react'
 import { accountContext, instContext } from './appContext.jsx'
-import CryptoJS from 'crypto-js'
+import { fetchOrderHistory } from './OKX_SDK/trade.js'
+
 import './OrderHistory.css'
 function OrderHistory() {
     const account = useContext(accountContext);
@@ -9,37 +10,17 @@ function OrderHistory() {
     const [historyData, setHistoryData] = useState(null);
     useEffect(() => {
         setIsLoading(true)
-        const fetchOrderHistory = async () => {
-            try {
-                const baseURL = 'https://www.okx.com'
-                const path = `/api/v5/trade/orders-history-archive?instType=SPOT&instId=${instId}`
-                let timestamp = new Date().toISOString()
-                const SecretKey = account.okSecretKey
-                const okAccessKey = account.okAccessKey
-                const okPassphrase = account.okPassphrase
-                let sign = CryptoJS.enc.Base64.stringify(CryptoJS.HmacSHA256(timestamp + 'GET' + path, SecretKey))
-                const response = await fetch(baseURL + path, {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'OK-ACCESS-KEY': okAccessKey,
-                        'OK-ACCESS-SIGN': sign,
-                        'OK-ACCESS-TIMESTAMP': timestamp,
-                        'OK-ACCESS-PASSPHRASE': okPassphrase
-                    }
-                })
-                
-                const data = await response.json()
-                setIsLoading(false)
-                setHistoryData(data.data)
-            } catch (error) {
-                console.log(error)
-            }
-        }
-        fetchOrderHistory();
+        const data = fetchOrderHistory(account, instId)
+        data.then((data) => {
+            setHistoryData(data.data);
+            setIsLoading(false);
+        })
         const intervalId = setInterval(() => {
-            fetchOrderHistory();
-        }, 3000)
+            const data = fetchOrderHistory(account, instId);
+            data.then((data) => {
+                setHistoryData(data.data);
+            })
+        }, 5000)
         return () => {
             clearInterval(intervalId);
         }

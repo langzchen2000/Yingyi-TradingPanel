@@ -1,13 +1,9 @@
-import CryptoJS from 'crypto-js'
+import { userVerify } from './user-verification.js'
 const baseURL = 'https://www.okx.com'
 
 export const handleLimitOrder = async (account, instId, price, amount, side ) => {
     try {
         const path = '/api/v5/trade/order'
-        const timestamp = new Date().toISOString()
-        const SecretKey = account.okSecretKey
-        const okAccessKey = account.okAccessKey
-        const okPassphrase = account.okPassphrase
         const body = JSON.stringify({
             "instId": instId,
             "tdMode": "cash",
@@ -16,15 +12,11 @@ export const handleLimitOrder = async (account, instId, price, amount, side ) =>
             "px": price,
             "sz": amount,
         })
-        const sign = CryptoJS.enc.Base64.stringify(CryptoJS.HmacSHA256(timestamp + 'POST' + path + body, SecretKey))
+        const userVeriHeader = userVerify(account, body, path, 'POST')
         const response = await fetch(baseURL + path, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'OK-ACCESS-KEY': okAccessKey,
-                'OK-ACCESS-SIGN': sign,
-                'OK-ACCESS-TIMESTAMP': timestamp,
-                'OK-ACCESS-PASSPHRASE': okPassphrase
+                ...userVeriHeader,
             },
             body: body,
         })
@@ -35,3 +27,19 @@ export const handleLimitOrder = async (account, instId, price, amount, side ) =>
     }
 }
 
+export const fetchOrderHistory = async (account, instId) => {
+    try {
+        const path = `/api/v5/trade/orders-history-archive?instType=SPOT&instId=${instId}`
+        const userVeriHeader = userVerify(account, '', path, 'GET')
+        const response = await fetch(baseURL + path, {
+            method: 'GET',
+            headers: {
+                ...userVeriHeader,
+            }
+        })
+        const data = await response.json()
+        return data;
+    } catch (error) {
+        console.log(error)
+    }
+}

@@ -129,12 +129,12 @@ function LimitForm({ buyOrSell }) {
         fetchMarketPrice(instId)
             .then((data) => {
                 setPrice(data);
-            });
+            })
         fetchInstInfo('SPOT', instId)
             .then((data) => {
                 pricePrecision.current = data.tickSz;
                 sizePrecision.current = data.lotSz;
-            });
+            })
     }, [instId, buyOrSell])
 
     const handleInputChange = useCallback((e) => {
@@ -213,7 +213,10 @@ function LimitForm({ buyOrSell }) {
                 <label htmlFor="total">金额</label>
                 <input type="number" id="total" name="total" value={total} onChange={handleInputChange} />
             </div>
-            {buyOrSell === 'buy' ? <div className="order-panel-button buy-button" onClick={() => handleLimitOrder(account, instId, price, amount, 'buy')}>买入</div> : <div className="order-panel-button sell-button" onClick={() => handleLimitOrder(account, instId, price, amount, 'sell')}>卖出</div>}
+            {buyOrSell === 'buy' ?
+                <div className="order-panel-button buy-button" onClick={() => handleLimitOrder(account, instId, price, amount, 'buy')}>买入</div>
+                : <div className="order-panel-button sell-button" onClick={() => handleLimitOrder(account, instId, price, amount, 'sell')}>卖出</div>
+            }
         </form>
     )
 }
