@@ -1,8 +1,8 @@
 import CryptoJS from 'crypto-js'
+const baseURL = 'https://www.okx.com'
 
 export const handleLimitOrder = async (account, instId, price, amount, side ) => {
     try {
-        const baseURL = 'https://www.okx.com'
         const path = '/api/v5/trade/order'
         const timestamp = new Date().toISOString()
         const SecretKey = account.okSecretKey
@@ -17,7 +17,6 @@ export const handleLimitOrder = async (account, instId, price, amount, side ) =>
             "sz": amount,
         })
         const sign = CryptoJS.enc.Base64.stringify(CryptoJS.HmacSHA256(timestamp + 'POST' + path + body, SecretKey))
-        console.log(sign)
         const response = await fetch(baseURL + path, {
             method: 'POST',
             headers: {
@@ -30,7 +29,7 @@ export const handleLimitOrder = async (account, instId, price, amount, side ) =>
             body: body,
         })
         const data = await response.json()
-        console.log(data)
+        return data
     } catch (error) {
         console.log(error)
     }

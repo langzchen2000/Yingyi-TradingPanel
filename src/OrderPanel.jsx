@@ -2,8 +2,9 @@ import { useEffect, useRef, useState, useContext, useCallback } from 'react';
 import './OrderPanel.css'
 import { instContext, accountContext } from './appContext';
 import Decimal from 'decimal.js'
-import {handleLimitOrder} from './OKX_SDK/trade.js'
-const baseURL = 'https://www.okx.com';
+import { handleLimitOrder } from './OKX_SDK/trade.js'
+import { fetchMarketPrice } from './OKX_SDK/market.js'
+import { fetchInstInfo } from './OKX_SDK/public.js'
 
 function OrderPanel() {
     const buyRef = useRef(null);
@@ -13,8 +14,6 @@ function OrderPanel() {
     const batchRef = useRef(null);
     const [buyOrSell, setBuyOrSell] = useState('buy');
     const [orderType, setOrderType] = useState('Limit');
-
-
 
     useEffect(() => {
 
@@ -101,13 +100,14 @@ function Form({ buyOrSell, orderType }) {
     }
 }
 
+//用户输入的价格和数量必须是最小单位的整数倍
 function isValidInput(value, precision) {
     console.log(value, precision)
     const x = new Decimal(value);
     const y = new Decimal(precision);
     return x.mod(y).equals(0);
 }
-
+//若用户更改下单金额，则数量按照最小单位的整数倍计算
 function calcAmount(total, price, precision) {
     const x = new Decimal(total);
     const y = new Decimal(price);
@@ -120,50 +120,39 @@ function LimitForm({ buyOrSell }) {
     const [price, setPrice] = useState('');
     const [amount, setAmount] = useState('');
     const [total, setTotal] = useState('');
-    const pricePricision = useRef(1);
-    const sizePricision = useRef(1);
+    const pricePrecision = useRef(1);
+    const sizePrecision = useRef(1);
     const instId = useContext(instContext);
     const account = useContext(accountContext);
 
-    const fetchMarketPrice = useCallback(async function () {
-        const response = await fetch(`${baseURL}/api/v5/market/ticker?instId=${instId}`);
-        const data = await response.json();
-        setPrice(data.data[0].last);
-    }, [instId])
-
-    const fetchInstInfo = useCallback(async function () {
-        const response = await fetch(`${baseURL}/api/v5/public/instruments?instType=SPOT&instId=${instId}`);
-        const data = await response.json();
-        console.log(data.data[0])
-        pricePricision.current = data.data[0].tickSz;
-        sizePricision.current = data.data[0].lotSz;
-    }, [instId])
-
     useEffect(() => {
-        fetchMarketPrice();
-        fetchInstInfo();
-    }, [fetchMarketPrice, fetchInstInfo])
-
-    useEffect(() => {
-        fetchMarketPrice();
-    }, [buyOrSell, fetchMarketPrice])
+        fetchMarketPrice(instId)
+            .then((data) => {
+                setPrice(data);
+            });
+        fetchInstInfo('SPOT', instId)
+            .then((data) => {
+                pricePrecision.current = data.tickSz;
+                sizePrecision.current = data.lotSz;
+            });
+    }, [instId, buyOrSell])
 
     const handleInputChange = useCallback((e) => {
         const { name, value } = e.target;
-
         switch (name) {
             case 'price':
-                if (isValidInput(value, pricePricision.current)) {
+                if (!value) {
+                    setTotal('');
+                    setPrice('');
+                    break;
+                }
+                if (isValidInput(value, pricePrecision.current)) {
                     setPrice(value);
                 } else {
                     break;
                 }
                 if (total && amount && value) {
                     setTotal(value * amount);
-                    break;
-                }
-                if (!value) {
-                    setTotal('');
                     break;
                 }
                 if (amount) setTotal(value * amount);
@@ -175,7 +164,7 @@ function LimitForm({ buyOrSell }) {
                     setAmount('');
                     break;
                 }
-                if (value && isValidInput(value, sizePricision.current)) {
+                if (value && isValidInput(value, sizePrecision.current)) {
                     setAmount(value);
                 } else {
                     break;
@@ -185,7 +174,7 @@ function LimitForm({ buyOrSell }) {
                     break;
                 }
 
-                if (price) setTotal(value * price);
+                if (price) setTotal((value * price).toFixed(1));
                 else if (total) setPrice(total / value);
                 break;
             case 'total':
@@ -199,7 +188,7 @@ function LimitForm({ buyOrSell }) {
                 } else {
                     break;
                 }
-                if (price) setAmount(calcAmount(value, price, sizePricision.current));
+                if (price) setAmount(calcAmount(value, price, sizePrecision.current));
                 else if (amount) setPrice(value / amount);
                 break;
             default:
@@ -207,7 +196,7 @@ function LimitForm({ buyOrSell }) {
         }
     }, [amount, price, total]);
 
-    
+
 
 
     return (
