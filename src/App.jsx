@@ -4,8 +4,7 @@ import { instContext, accountContext } from './appContext'
 import Chart from './Chart'
 import Header from './Header'
 import OrderPanel from './OrderPanel'
-import OrderHistory from './OrderHistory'
-import Account from './Account'
+import AccountInfo from './AccountInfo'
 
 let instIdTemp = 'BTC-USDT';
 if (localStorage.getItem('instId')) {
@@ -36,8 +35,7 @@ function App() {
           <Header setInstId={setInstId} />
           <div className='main'>
               <div className='left-panel-wrapper'>
-                <OrderHistory />
-                <Account />
+                <AccountInfo />
               </div>
               <div className='middle-panel-wrapper'>
                 <Chart height={chartHeight}/>

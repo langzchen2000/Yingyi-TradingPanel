@@ -1,0 +1,38 @@
+.account-info-wrapper {
+    display: flex;
+    flex-direction: row;
+}
+
+.sidebar {
+    display: flex;
+    flex-direction: column;
+    width: min(3vw, 40px);
+    height: 100%;
+    margin-right: 10px;
+    overflow: hidden;
+}
+
+
+.sidebar button {
+    background-color: white;
+    flex-direction: column;
+    display: flex; /* 将按钮设置为flex容器 */
+    align-items: center; /* 垂直居中内容 */
+    justify-content: center; /* 水平居中内容 */
+    border-radius: 0 25% 25% 0;
+    border-color: rgb(240, 240, 240);
+    font-size: 1.3em;
+}
+
+.sidebar button:hover {
+    background-color: #333;
+    color: white;
+}
+
+.active {
+    width: min(20vw, 600px);
+}
+
+.content {
+    flex: 1;
+}

@@ -8,6 +8,7 @@
 
 body {
     margin: 0;
+
 }
 
 .main {
@@ -15,40 +16,7 @@ body {
     flex-direction: row;
 }
 
-.sidebar {
-    position: sticky;
-    display: flex;
-    flex-direction: column;
-    width: var(--sidebar-width);
-    background-color: #333;
-    padding: 0px;
-    color: white;
-    /* 固定位置 */
-    top: 0;
-    /* 从顶部开始 */
-    left: 0;
-    /* 从左边开始 */
-    height: 100vh;
-    /* 使其占满整个视口的高度 */
-    overflow-y: auto;
-    /* 如果内容超出侧边栏高度，允许滚动 */
-}
 
-.sidebar button {
-    padding: 0;
-    border-width: 0;
-}
-
-.sidebar span{
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    width: 100%;
-    height: var(--sidebar-width);
-    background-color: #333;
-    color: white;
-    font-size: 30px;
-}
 
 #setting-icon {
     position: fixed;
@@ -60,8 +28,12 @@ body {
 }
 
 .left-panel-wrapper {
-    width: 20vw;
+    display: flex;
+    margin-top: 20px;
+    border-top: 2px solid rgb(235, 235, 235);
+    padding-top: 10px;
 }
+
 .middle-panel-wrapper {
     flex: 1;
     display: flex;
@@ -74,6 +46,7 @@ body {
     max-width: 100%;
 }
 .right-panel-wrapper {
-    width: 20vw;
+    width:  min(20vw, 600px);
+    margin-right: 20px;
 }
 

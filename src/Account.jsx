@@ -19,6 +19,7 @@ function Account() {
                 const okAccessKey = account.okAccessKey
                 const okPassphrase = account.okPassphrase
                 const sign = CryptoJS.enc.Base64.stringify(CryptoJS.HmacSHA256(timestamp + 'GET' + path, SecretKey))
+                console.log(sign)
                 const response = await fetch(baseURL + path, {
                     method: 'GET',
                     headers: {
@@ -64,7 +65,10 @@ function Account() {
 
     return (
         <div className="account">
-            <div className="account-title">账户资产 {Number(accountTotalEquity) < 0.01 ? '<$0.01' : '$' + Number(accountTotalEquity).toFixed(4).toString()}</div>
+            <div className="account-title">
+                <span>总账户资产 {Number(accountTotalEquity) < 0.01 ? '<$0.01' : '$' + Number(accountTotalEquity).toFixed(2).toString()}</span>
+                <span className="close-expand">收起</span>
+            </div>
             <div className="account-list">
                 {renderAccount()}
             </div>

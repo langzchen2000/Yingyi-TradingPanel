@@ -1,5 +1,10 @@
-import { useEffect, useRef, useState} from 'react';
+import { useEffect, useRef, useState, useContext, useCallback } from 'react';
 import './OrderPanel.css'
+import { instContext, accountContext } from './appContext';
+import Decimal from 'decimal.js'
+import {handleLimitOrder} from './OKX_SDK/trade.js'
+const baseURL = 'https://www.okx.com';
+
 function OrderPanel() {
     const buyRef = useRef(null);
     const sellRef = useRef(null);
@@ -7,56 +12,55 @@ function OrderPanel() {
     const marketRef = useRef(null);
     const batchRef = useRef(null);
     const [buyOrSell, setBuyOrSell] = useState('buy');
-    const [orderType, setOrderType] = useState('limit');
+    const [orderType, setOrderType] = useState('Limit');
+
+
+
     useEffect(() => {
-        if (buyRef.current) {
+
+        limitRef.current.style.borderBottom = 'solid black 2px'
+        buyRef.current.addEventListener('click', () => {
             buyRef.current.style.backgroundColor = 'rgb(3, 179, 3)'
+            buyRef.current.style.color = 'black'
+            sellRef.current.style.backgroundColor = 'rgb(183, 183, 183)'
+            sellRef.current.style.color = 'grey'
             setBuyOrSell('buy')
-        }
-        if (limitRef.current) {
+        })
+
+        sellRef.current.addEventListener('click', () => {
+            buyRef.current.style.backgroundColor = 'rgb(183, 183, 183)'
+            buyRef.current.style.color = 'grey'
+            sellRef.current.style.backgroundColor = 'red'
+            sellRef.current.style.color = 'black'
+            setBuyOrSell('sell')
+        })
+
+
+        limitRef.current.addEventListener('click', () => {
             limitRef.current.style.borderBottom = 'solid black 2px'
+            marketRef.current.style.borderBottom = 'solid rgb(183, 183, 183) 2px'
+            batchRef.current.style.borderBottom = 'solid rgb(183, 183, 183) 2px'
             setOrderType('Limit')
-        }
-        if (buyRef.current && sellRef.current) {
-            buyRef.current.addEventListener('click', () => {
-                buyRef.current.style.backgroundColor = 'rgb(3, 179, 3)'
-                buyRef.current.style.color = 'black'
-                sellRef.current.style.backgroundColor = 'rgb(183, 183, 183)'
-                sellRef.current.style.color = 'grey'
-                setBuyOrSell('buy')
-            })
-            sellRef.current.addEventListener('click', () => {
-                buyRef.current.style.backgroundColor = 'rgb(183, 183, 183)'
-                buyRef.current.style.color = 'grey'
-                sellRef.current.style.backgroundColor = 'red'
-                sellRef.current.style.color = 'black'
-                setBuyOrSell('sell')
-            })
-        }
-        if (limitRef.current && marketRef.current) {
-            limitRef.current.addEventListener('click', () => {
-                limitRef.current.style.borderBottom = 'solid black 2px'
-                marketRef.current.style.borderBottom = 'solid rgb(183, 183, 183) 2px'
-                batchRef.current.style.borderBottom = 'solid rgb(183, 183, 183) 2px'
-                setOrderType('Limit')
-            });
-            marketRef.current.addEventListener('click', () => {
-                limitRef.current.style.borderBottom = 'solid rgb(183, 183, 183) 2px'
-                marketRef.current.style.borderBottom = 'solid black 2px'
-                batchRef.current.style.borderBottom = 'solid rgb(183, 183, 183) 2px'
-                setOrderType('Market')
-            });
-            batchRef.current.addEventListener('click', () => {
-                limitRef.current.style.borderBottom = 'solid rgb(183, 183, 183) 2px'
-                marketRef.current.style.borderBottom = 'solid rgb(183, 183, 183) 2px'
-                batchRef.current.style.borderBottom = 'solid black 2px'
-                setOrderType('Batch')
-            });
-        }
+        })
+        marketRef.current.addEventListener('click', () => {
+            limitRef.current.style.borderBottom = 'solid rgb(183, 183, 183) 2px'
+            marketRef.current.style.borderBottom = 'solid black 2px'
+            batchRef.current.style.borderBottom = 'solid rgb(183, 183, 183) 2px'
+            setOrderType('Market')
+        });
+        batchRef.current.addEventListener('click', () => {
+            limitRef.current.style.borderBottom = 'solid rgb(183, 183, 183) 2px'
+            marketRef.current.style.borderBottom = 'solid rgb(183, 183, 183) 2px'
+            batchRef.current.style.borderBottom = 'solid black 2px'
+            setOrderType('Batch')
+        });
+
         return () => {
             console.log('OrderPanel unmounted');
         }
     }, [])
+
+
     return (
         <div className='order-panel' >
             <div className='buy-sell-wrapper'>
@@ -76,6 +80,7 @@ function OrderPanel() {
     )
 }
 
+// eslint-disable-next-line react/prop-types
 function Form({ buyOrSell, orderType }) {
     if (orderType === 'Limit') {
         return (
@@ -96,17 +101,63 @@ function Form({ buyOrSell, orderType }) {
     }
 }
 
+function isValidInput(value, precision) {
+    console.log(value, precision)
+    const x = new Decimal(value);
+    const y = new Decimal(precision);
+    return x.mod(y).equals(0);
+}
+
+function calcAmount(total, price, precision) {
+    const x = new Decimal(total);
+    const y = new Decimal(price);
+    const p = new Decimal(precision);
+    return x.div(y).dividedToIntegerBy(p).mul(p).toString();
+}
+
+// eslint-disable-next-line react/prop-types
 function LimitForm({ buyOrSell }) {
     const [price, setPrice] = useState('');
     const [amount, setAmount] = useState('');
     const [total, setTotal] = useState('');
+    const pricePricision = useRef(1);
+    const sizePricision = useRef(1);
+    const instId = useContext(instContext);
+    const account = useContext(accountContext);
 
-    const handleInputChange = (e) => {
+    const fetchMarketPrice = useCallback(async function () {
+        const response = await fetch(`${baseURL}/api/v5/market/ticker?instId=${instId}`);
+        const data = await response.json();
+        setPrice(data.data[0].last);
+    }, [instId])
+
+    const fetchInstInfo = useCallback(async function () {
+        const response = await fetch(`${baseURL}/api/v5/public/instruments?instType=SPOT&instId=${instId}`);
+        const data = await response.json();
+        console.log(data.data[0])
+        pricePricision.current = data.data[0].tickSz;
+        sizePricision.current = data.data[0].lotSz;
+    }, [instId])
+
+    useEffect(() => {
+        fetchMarketPrice();
+        fetchInstInfo();
+    }, [fetchMarketPrice, fetchInstInfo])
+
+    useEffect(() => {
+        fetchMarketPrice();
+    }, [buyOrSell, fetchMarketPrice])
+
+    const handleInputChange = useCallback((e) => {
         const { name, value } = e.target;
 
         switch (name) {
             case 'price':
-                setPrice(value);
+                if (isValidInput(value, pricePricision.current)) {
+                    setPrice(value);
+                } else {
+                    break;
+                }
                 if (total && amount && value) {
                     setTotal(value * amount);
                     break;
@@ -119,36 +170,45 @@ function LimitForm({ buyOrSell }) {
                 else if (total) setAmount(total / value);
                 break;
             case 'amount':
-                setAmount(value);
-                if (total && price && value) {
-                    setTotal(value * price);
-                    break;
-                }
                 if (!value) {
                     setTotal('');
+                    setAmount('');
                     break;
                 }
+                if (value && isValidInput(value, sizePricision.current)) {
+                    setAmount(value);
+                } else {
+                    break;
+                }
+                if (total && price && value) {
+                    setTotal((value * price).toFixed(1));
+                    break;
+                }
+
                 if (price) setTotal(value * price);
                 else if (total) setPrice(total / value);
                 break;
             case 'total':
-                setTotal(value);
-                console.log(typeof value);
-                if (value && amount && price) {
-                    setAmount(value / price);
-                    break;
-                }
                 if (!value) {
                     setAmount('');
+                    setTotal('');
                     break;
                 }
-                if (price) setAmount(value / price);
+                if (isValidInput(value, 0.1)) {
+                    setTotal(value);
+                } else {
+                    break;
+                }
+                if (price) setAmount(calcAmount(value, price, sizePricision.current));
                 else if (amount) setPrice(value / amount);
                 break;
             default:
                 break;
         }
-    };
+    }, [amount, price, total]);
+
+    
+
 
     return (
         <form>
@@ -164,11 +224,12 @@ function LimitForm({ buyOrSell }) {
                 <label htmlFor="total">金额</label>
                 <input type="number" id="total" name="total" value={total} onChange={handleInputChange} />
             </div>
-            {buyOrSell === 'buy' ? <div className="order-panel-button buy-button">买入</div> : <div className="order-panel-button sell-button">卖出</div>}
+            {buyOrSell === 'buy' ? <div className="order-panel-button buy-button" onClick={() => handleLimitOrder(account, instId, price, amount, 'buy')}>买入</div> : <div className="order-panel-button sell-button" onClick={() => handleLimitOrder(account, instId, price, amount, 'sell')}>卖出</div>}
         </form>
     )
 }
 
+// eslint-disable-next-line react/prop-types
 function MarketForm({ buyOrSell }) {
     return (
         <form>
@@ -180,6 +241,7 @@ function MarketForm({ buyOrSell }) {
     )
 }
 
+// eslint-disable-next-line react/prop-types
 function BatchForm({ buyOrSell }) {
     return (
         <form>

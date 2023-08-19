@@ -111,10 +111,11 @@ const styleConfig = {
     greenColor: 'rgb(3, 179, 3)',
 }
 
+const baseURL = 'https://www.okx.com'
 // eslint-disable-next-line react/prop-types
 function Chart() {
 
-    const baseURL = 'https://www.okx.com'
+
     const canvasRef = useRef(null);
     const fabricCanvasRef = useRef(null);
     const priceCanvasRef = useRef(null);
@@ -159,29 +160,23 @@ function Chart() {
         //初始化k-线画布
         fabricCanvasRef.current = new fabric.Canvas(canvasRef.current);
         fabricCanvasRef.current.imageSmoothingEnabled = false;
-        fabricCanvasRef.current.setWidth(canvasWrapperRef.current.clientWidth - 20);
-        fabricCanvasRef.current.setHeight(window.innerHeight * 0.8);
         fabricCanvasRef.current.selection = false;
         //初始化价格画布（上层）
         fabricPriceCanvasRef.current = new fabric.Canvas(priceCanvasRef.current);
         fabricPriceCanvasRef.current.imageSmoothingEnabled = false;
         fabricPriceCanvasRef.current.backgroundColor = 'white';
         fabricPriceCanvasRef.current.setWidth(PRICE_HORI_MARGIN);
-        fabricPriceCanvasRef.current.setHeight(window.innerHeight * 0.8);
         fabricPriceCanvasRef.current.selection = false;
         //初始化时间画布
         fabricTimeCanvasRef.current = new fabric.Canvas(timeCanvasRef.current);
         fabricTimeCanvasRef.current.imageSmoothingEnabled = false;
         fabricTimeCanvasRef.current.backgroundColor = 'white';
-        fabricTimeCanvasRef.current.setWidth(canvasWrapperRef.current.clientWidth - 20);
         fabricTimeCanvasRef.current.setHeight(40);
         fabricTimeCanvasRef.current.selection = false;
         //设置价格画布container的样式
         const container = fabricPriceCanvasRef.current.wrapperEl
         container.style.position = 'absolute';
         container.style.top = '0';
-        container.style.left = fabricCanvasRef.current.width - PRICE_HORI_MARGIN + 'px';
-        container.style.zIndex = '2';
         //初始化k线画布container的样式
         const lowerContainer = fabricCanvasRef.current.wrapperEl;
         lowerContainer.style.position = 'absolute';
@@ -190,7 +185,6 @@ function Chart() {
         //初始化时间画布container的样式
         const timeContainer = fabricTimeCanvasRef.current.wrapperEl;
         timeContainer.style.position = 'absolute';
-        timeContainer.style.top = fabricCanvasRef.current.height + 'px';
         timeContainer.style.left = '0';
 
         function handleResize() {
@@ -202,14 +196,17 @@ function Chart() {
             fabricPriceCanvasRef.current.setHeight(window.innerHeight * 0.8);
             const timeContainer = fabricTimeCanvasRef.current.wrapperEl;
             timeContainer.style.top = fabricCanvasRef.current.height + 'px';
-            fabricTimeCanvasRef.current.setWidth(canvasWrapperRef.current.clientWidth)
+            fabricTimeCanvasRef.current.setWidth(canvasWrapperRef.current.clientWidth - 20);
         }
-        window.addEventListener('resize', handleResize);
+
+        const resizeObserver = new ResizeObserver(handleResize);
+        resizeObserver.observe(canvasWrapperRef.current);
+        handleResize();
         return () => {
             fabricCanvasRef.current.dispose();
             fabricPriceCanvasRef.current.dispose();
             fabricTimeCanvasRef.current.dispose();
-            window.removeEventListener('resize', handleResize);
+            resizeObserver.disconnect();
         };
     }, []);
 

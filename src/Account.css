@@ -22,3 +22,13 @@
     background: linear-gradient(to right, black 0%, black 1%, rgba(0, 0, 0, 0.2) 1%, rgba(0, 0, 0, 0.2) 100%);
     text-align: center;
 }
+
+.close-button-wrapper {
+    position: relative;
+    height: 20px;
+}
+
+.close-button {
+    position: absolute;
+    right: 0;
+}
