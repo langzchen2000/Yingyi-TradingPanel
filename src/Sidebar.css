@@ -1,33 +1,3 @@
-.sidebar .setting-modal {
-    width: 30vw;
-}
 
-.setting-modal input {
-    display: block;
-    width: 90%;
-    font-size: 1.3em;
-}
-
-.setting-modal {
-    font-size: 1.3em;
-}
-
-.sidebar dialog button {
-    font-size: 1.3em;
-    width: 20%;
-    border-radius: 20px;
-    text-align: center;
-    margin-top: 15px;
-}
-
-.modal-button-wrapper {
-    display: flex;
-    flex-direction: row;
-    justify-content: center;
-}
-
-.modal-button-wrapper button {
-    margin: 20px 10px ;
-}
 
 

@@ -19,6 +19,11 @@
     height: calc(80vh + 40px);
 }
 
+.time-scale-wrapper {
+    position: relative;
+}
+
+
 .chart {
     width: 100%;
     border-radius: 2%;

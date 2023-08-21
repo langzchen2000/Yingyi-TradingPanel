@@ -679,8 +679,6 @@ function Chart() {
             fabricCanvasRef.current.renderAll();
             fabricPriceCanvasRef.current.renderAll();
         }
-        const throttledHandleMouseMove = throttle(handleMouseMove, 10);
-        const throttledDrawChartData = throttle(drawChartData, 50);
 
         fabricCanvasRef.current.on('mouse:move', function (event) {
             handleMouseMove(event)
@@ -697,35 +695,6 @@ function Chart() {
             horiLinePriceTag.current = null;
         });
 
-
-        fabricCanvasRef.current.on('mouse:down', function (event) {
-            const initialMouseX = Math.round(event.e.clientX);
-            const initialMouseY = Math.round(event.e.clientY);
-            let initXRenderStart = Math.round(XRenderStartRef.current);
-            let initminPrice = minPriceRef.current;
-            let initmaxPrice = maxPriceRef.current;
-            const priceChangePerPixel = (maxPriceRef.current - minPriceRef.current) / (fabricCanvasRef.current.height);
-            fabricCanvasRef.current.defaultCursor = 'grabbing';
-            fabricCanvasRef.current.hoverCursor = 'grabbing';
-            fabricCanvasRef.current.off('mouse:move');
-            fabricCanvasRef.current.on('mouse:move', function (event) {
-                throttledHandleMouseMove(event);
-                const movementX = Math.round(event.e.clientX - initialMouseX)
-                const movementY = Math.round(event.e.clientY - initialMouseY);
-                //console.log(movementX);
-                XRenderStartRef.current = initXRenderStart + movementX;
-                minPriceRef.current = initminPrice + movementY * priceChangePerPixel;
-                maxPriceRef.current = initmaxPrice + movementY * priceChangePerPixel;
-                throttledDrawChartData();
-            });
-        });
-
-        fabricCanvasRef.current.on('mouse:up', function () {
-            fabricCanvasRef.current.defaultCursor = 'default';
-            fabricCanvasRef.current.hoverCursor = 'default';
-            fabricCanvasRef.current.off('mouse:move');
-            fabricCanvasRef.current.on('mouse:move', (event) => throttledHandleMouseMove(event));
-        });
 
         fabricCanvasRef.current.on('mouse:wheel', function (event) {
             event.e.preventDefault();
@@ -755,6 +724,7 @@ function Chart() {
                 drawChartData();
             }
         });
+
         return () => {
             fabricCanvasRef.current.off('mouse:move');
             fabricCanvasRef.current.off('mouse:down');

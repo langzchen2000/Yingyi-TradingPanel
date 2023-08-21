@@ -12,9 +12,7 @@ export default function OrderTable() {
                 <div className='levels-button button' onClick={() => setDisplay('order-book')}>
                     订单表
                 </div>
-                <div className='latest-transactions-button button' onClick={() => setDisplay('latest-trans')}>
-                    最新成交
-                </div>
+
             </div>
             <div className='table-wrapper'>
                 {display === 'order-book' ? <OrderBook /> : <Transactions />}
@@ -27,7 +25,7 @@ export default function OrderTable() {
 function OrderBook() {
     const instId = useContext(instContext)
     const [marketPrice, setMarketPrice] = useState(0)
-    const [size, setSize] = useState(7)
+    const [size] = useState(7)
     const [asks, setAsks] = useState([])
     const [bids, setBids] = useState([])
     const [isLoading, setIsLoading] = useState(true)
