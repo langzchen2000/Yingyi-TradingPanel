@@ -39,8 +39,8 @@ function Account() {
     return (
         <div className="account">
             <div className="account-title">
-                <span>总账户资产 {Number(accountTotalEquity) < 0.01 ? '<$0.01' : '$' + Number(accountTotalEquity).toFixed(2).toString()}</span>
-                <span className="close-expand">收起</span>
+            {!isLoading ? (<span>总账户资产 {Number(accountTotalEquity) < 0.01 ? '<$0.01' : '$' + Number(accountTotalEquity).toFixed(2).toString()}</span>
+                ) : null}
             </div>
             <div className="account-list">
                 {renderAccount()}

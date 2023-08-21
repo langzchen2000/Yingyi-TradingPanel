@@ -54,7 +54,7 @@ function OrderHistory() {
 
     return (
         <div className="order-history">
-            <div className="order-history-title">历史委托</div>
+            {!isLoading ? <div className="order-history-title">历史委托</div> : null}
             <div className="order-history-content">
                 {renderHistory()}
             </div>

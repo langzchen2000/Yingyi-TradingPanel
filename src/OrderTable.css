@@ -1,0 +1,42 @@
+.order-table-wrapper {
+    display: flex;
+    flex-direction: column;
+    margin-top: 20px;
+    width: 100%;
+    overflow-x: auto;
+
+}
+
+.selection-wrapper {
+    display: flex;
+    flex-direction: row;
+    padding-left: 20px;
+}
+
+.selection-wrapper .button {
+    border-width: 0;
+    background-color: #e1e0e0;
+    font-size: 1.5em;
+}
+
+
+.order-row {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    padding: 10px 20px;
+    border-bottom: 1px solid rgb(235, 235, 235);
+}
+
+.current-price {
+    font-size: 1.5em;
+    font-weight: bold;
+    text-align: center;
+}
+
+.loader-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 300px;
+}

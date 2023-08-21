@@ -5,7 +5,7 @@ import Chart from './Chart'
 import Header from './Header'
 import OrderPanel from './OrderPanel'
 import AccountInfo from './AccountInfo'
-
+import OrderTable from './OrderTable'
 let instIdTemp = 'BTC-USDT';
 if (localStorage.getItem('instId')) {
   instIdTemp = localStorage.getItem('instId');
@@ -42,6 +42,7 @@ function App() {
               </div>
               <div className='right-panel-wrapper'>
                 <OrderPanel />
+                <OrderTable />
               </div>
           </div>
         </accountContext.Provider>

@@ -74,7 +74,6 @@ function OrderPanel() {
             <div className='form-wrapper' >
                 <Form buyOrSell={buyOrSell} orderType={orderType} />
             </div>
-
         </div>
     )
 }
