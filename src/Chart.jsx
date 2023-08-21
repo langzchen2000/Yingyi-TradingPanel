@@ -216,7 +216,7 @@ function Chart() {
 
     const fetchMoreData = useCallback(async () => {
         try {
-            const response = await fetch(`${baseURL}/api/v5/market/candles?instId=${instId}&bar=${timeScale}&after=${chartDataRef.current[chartDataRef.current.length - 1][0] - 1}&limit=100`);
+            const response = await fetch(`/api/v5/market/candles?instId=${instId}&bar=${timeScale}&after=${chartDataRef.current[chartDataRef.current.length - 1][0] - 1}&limit=100`);
             const data = await response.json();
             console.log('fetching more data')
             if (data.data && chartDataRef.current[chartDataRef.current.length - 1][0] - data.data[0][0] == timeScaleToMiliseconds[timeScale]) {
@@ -535,7 +535,7 @@ function Chart() {
         let ignore = false;
         const fetchKLineData = async (calcMinAndMax, limit, initialFetch = false) => {
             try {
-                const response = await fetch(`${baseURL}/api/v5/market/candles?instId=${instId}&bar=${timeScale}&after=${Date.now()}&limit=${limit || 2}`);
+                const response = await fetch(`/api/v5/market/candles?instId=${instId}&bar=${timeScale}&after=${Date.now()}&limit=${limit || 2}`);
                 const data = await response.json();
                 lastDateTimeRef.current = Number(data.data[0][0]);
                 if (!ignore) {
