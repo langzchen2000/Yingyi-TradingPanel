@@ -112,7 +112,6 @@ const styleConfig = {
     greenColor: 'rgb(3, 179, 3)',
 }
 
-const baseURL = 'https://www.okx.com'
 console.log('not touchable')
 // eslint-disable-next-line react/prop-types
 function Chart() {
