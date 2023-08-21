@@ -1,5 +1,4 @@
 import { userVerify } from './user-verification.js'
-const baseURL = 'https://www.okx.com'
 
 export const handleLimitOrder = async (account, instId, price, amount, side ) => {
     try {
@@ -13,7 +12,7 @@ export const handleLimitOrder = async (account, instId, price, amount, side ) =>
             "sz": amount,
         })
         const userVeriHeader = userVerify(account, body, path, 'POST')
-        const response = await fetch(baseURL + path, {
+        const response = await fetch(path, {
             method: 'POST',
             headers: {
                 ...userVeriHeader,
@@ -31,7 +30,7 @@ export const fetchOrderHistory = async (account, instId) => {
     try {
         const path = `/api/v5/trade/orders-history-archive?instType=SPOT&instId=${instId}`
         const userVeriHeader = userVerify(account, '', path, 'GET')
-        const response = await fetch(baseURL + path, {
+        const response = await fetch(path, {
             method: 'GET',
             headers: {
                 ...userVeriHeader,
